@@ -1,0 +1,146 @@
+<RegisterScreen>:
+    name: "register_screen"
+    TopBar:
+        title: "SIGN UP"
+       
+    MDBoxLayout:
+        orientation: 'vertical'
+        spacing: 10
+        padding: 10
+        ScrollView:
+            size_hint_y: None
+            height: root.height - dp(80)
+            pos_hint: {"top": 1}
+            do_scroll_x: False
+            do_scroll_y: True
+
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: [40, 20, 40, 20]
+                spacing: 20
+
+                Label:
+                    text: "Hello! Register to get started"
+                    font_size: "24sp"
+                    bold: True
+                    color: rgba('#283F5E')
+                    size_hint_x: 1
+                    size_hint_y: None
+                    height: "50dp"
+                    text_size: self.width, None
+                    halign: 'center'
+                    valign: 'middle'
+
+                Textinput:
+                    id: user_register
+                    hint_text: "Username"
+                    icon_right: "account"
+                    multiline: False
+                    
+                Textinput:
+                    id: email_register
+                    hint_text: "Email"
+                    icon_right: "email"
+                    multiline: False
+                    
+                    # on_text: app.validate_email(self)
+
+                BoxLayout:
+                    size_hint: 1, None
+                    height: "50dp"
+                    spacing: 10
+
+                    Textinput:
+                        id: country_code
+                        hint_text: "Code"
+                        size_hint_x: 0.2
+                        on_text: app.filter_spaces_and_tabs(*args)
+
+                    Textinput:
+                        id: phone_register
+                        hint_text: "Phone Number"
+                        icon_right: "phone"
+                        size_hint_x: 0.8
+                        input_filter: 'int'
+
+                Textinput:
+                    id: address_register
+                    hint_text: "Address"
+                    icon_right: "home"
+                    multiline: False
+                    
+
+                Textinput:
+                    id: city_register
+                    hint_text: "City"
+                    icon_right: "city"
+                    multiline: False
+                    
+
+                Textinput:
+                    id: postal_code_register
+                    hint_text: "Postal Code"
+                    icon_right: "map-marker"
+                    multiline: False
+                    input_filter: 'int'
+
+                Textinput:
+                    id: password_register
+                    hint_text: "Password"
+                    icon_right: "eye-off"
+                    password: True
+                    multiline: False
+                    
+
+                Textinput:
+                    id: confirm_password_register
+                    hint_text: "Confirm Password"
+                    icon_right: "eye-off"
+                    password: True
+                    multiline: False
+                    
+
+                BoxLayout:
+                    size_hint: 1, None
+                    height: "30dp"
+                    spacing: 10
+
+                    MDCheckbox:
+                        id: cb
+                        size_hint: None, None
+                        width: "30dp"
+                        height: "30dp"
+                        on_release:
+                            password_register.password = not password_register.password
+                            password_register.icon_right = "eye" if password_register.icon_right == "eye-off" else "eye-off"
+                            confirm_password_register.password = not confirm_password_register.password
+                            confirm_password_register.icon_right = "eye" if confirm_password_register.icon_right == "eye-off" else "eye-off"
+
+                    MDLabel:
+                        text: '[ref=Show Password]Show Password[/ref]'
+                        markup: True
+                        font_size: "14sp"
+                        color: rgba('#6A707C')
+                        on_ref_press:
+                            cb.active = not cb.active
+                            password_register.password = not password_register.password
+                            password_register.icon_right = "eye" if password_register.icon_right == "eye-off" else "eye-off"
+                            confirm_password_register.password = not confirm_password_register.password
+                            confirm_password_register.icon_right = "eye" if confirm_password_register.icon_right == "eye-off" else "eye-off"
+                RoundedButton:
+                    text: 'Sign up'
+                    on_release: 
+                        root.manager.transition.direction = "left"
+                        root.verification_action()
+
+                Label:
+                    text: "[color=#6C6F72]Already have an account?[/color] [u][color=#3BA8DA][ref=login]Login Now[/ref][/color][/u]"
+                    markup: True
+                    size_hint_x: 1
+                    size_hint_y: None
+                    height: "30dp"
+                    font_size: "14sp"
+                    halign: 'center'
+                    on_ref_press: app.navigate("login_screen")

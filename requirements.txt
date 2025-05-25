@@ -1,0 +1,10 @@
+Kivy==2.3.1
+PyJWT==2.10.1
+Flask==3.1.0
+mysql-connector-python==9.2.0
+bcrypt==4.2.1
+kivymd==1.2.0
+opencv-python==4.11.0.86
+pyzbar==0.1.9
+plyer==2.1.0
+asynckivy==0.7.1

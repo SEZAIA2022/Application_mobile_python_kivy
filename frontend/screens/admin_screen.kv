@@ -1,0 +1,135 @@
+<AdminScreen>:
+    name: "admin_screen"
+    MDBoxLayout:
+        orientation: 'vertical'
+        TopBar:
+            title: "Admin Tools"
+
+        ScrollView:
+            size_hint_y: 1 
+            pos_hint: {"x": 0, "y": -.071}
+            do_scroll_x: False
+            do_scroll_y: True
+            MDBoxLayout: 
+                orientation: "vertical"
+                padding: "16dp"
+                spacing: "10dp"
+                size_hint_y: None
+                height: self.minimum_height
+
+                MDCard:
+                    orientation: "horizontal"
+                    size_hint: 1, None
+                    spacing: 40
+                    height: "70dp"
+                    padding: "10dp"
+                    ripple_behavior: True
+                    on_release: app.navigate("camera_screen")
+
+                    MDIcon:
+                        icon: "qrcode-scan"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        padding_x: "10dp"
+
+                        MDLabel:
+                            text: "Scan qrcodes"
+                            theme_text_color: "Primary"
+
+
+                MDCard:
+                    spacing: 40
+                    orientation: "horizontal"
+                    size_hint: 1, None
+                    height: "70dp"
+                    padding: "10dp"
+                    ripple_behavior: True
+                    on_release: app.navigate("add_qrcode")
+
+                    MDIcon:
+                        icon: "forum"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        padding_x: "10dp"
+
+                        MDLabel:
+                            text: "Add qrcodes"
+                            theme_text_color: "Primary"
+
+
+                MDCard:
+                    spacing: 40
+                    orientation: "horizontal"
+                    size_hint: 1, None
+                    height: "70dp"
+                    padding: "10dp"
+                    ripple_behavior: True
+                    on_release: app.navigate("question_screen")
+
+                    MDIcon:
+                        icon:"account-question"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        padding_x: "10dp"
+
+                        MDLabel:
+                            text: "Questions"
+                            theme_text_color: "Primary"
+
+                MDCard:
+                    spacing: 40
+                    orientation: "horizontal"
+                    size_hint: 1, None
+                    height: "70dp"
+                    padding: "10dp"
+                    ripple_behavior: True
+                    on_release: app.navigate("request_screen")
+
+                    MDIcon:
+                        icon: "folder-wrench"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        padding_x: "10dp"
+
+                        MDLabel:
+                            text: "Request of repair"
+                            theme_text_color: "Primary"
+                    
+                MDCard:
+                    spacing: 40
+                    orientation: "horizontal"
+                    size_hint: 1, None
+                    height: "70dp"
+                    padding: "10dp"
+                    ripple_behavior: True
+                    on_release: app.navigate("show_client_screen")
+
+                    MDIcon:
+                        icon: "account-multiple-plus-outline"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        padding_x: "10dp"
+
+                        MDLabel:
+                            text: "Clients"
+                            theme_text_color: "Primary"

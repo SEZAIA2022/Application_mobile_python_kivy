@@ -1,0 +1,59 @@
+<ScanScreen>:
+    name: "scan_screen"
+    RelativeLayout:
+        orientation: 'vertical'
+        padding: 20
+        spacing: 20
+
+        TopBar:
+            title: "SCAN QRCOODE"
+           
+        Image:
+            source: 'assets/icon_scan.png'  # Remplace par le chemin de ton icône
+            size_hint: None, None
+            size: dp(200), dp(200)  # Taille réduite pour une meilleure intégration
+            pos_hint: {'center_x': 0.5, 'center_y': 0.7}  # Position ajustée
+
+        # Conteneur pour les ellipses
+        BoxLayout:
+            size_hint: None, None
+            size: dp(100), dp(20)  # Taille fixe pour le conteneur
+            pos_hint: {'center_x': 0.5, 'center_y': 0.5}  # Centré horizontalement et verticalement
+            orientation: 'horizontal'
+            spacing: 10
+            canvas.before:
+                Color:
+                    rgba: 0.7, 0.7, 0.7, 1
+                Ellipse:
+                    pos: self.pos[0], self.pos[1]
+                    size: dp(10), dp(10)
+                Color:
+                    rgba: 0.1, 0.3, 0.5, 1  # Point actif
+                Ellipse:
+                    pos: self.pos[0] + dp(30), self.pos[1]
+                    size: dp(10), dp(10)
+                Color:
+                    rgba: 0.7, 0.7, 0.7, 1
+                Ellipse:
+                    pos: self.pos[0] + dp(60), self.pos[1]
+                    size: dp(10), dp(10)
+
+        Label:
+            text: "[i]Please give access to your Camera so that we can scan and provide you with what is inside the code.[/i]"
+            markup: True
+            font_size: "16sp"  # Taille de police ajustée
+            color: rgba('#6A707C')
+            size_hint_y: None
+            height: self.texture_size[1]  # Ajuste la hauteur au contenu
+            pos_hint: {'center_x': 0.5, 'center_y': 0.4}  # Position ajustée (après les ellipses)
+            text_size: self.width, None  # Permet au texte de s'adapter à la largeur
+            halign: 'center'  # Alignement horizontal
+            valign: 'middle'  # Alignement vertical
+
+        RoundedButton:            
+            text: "Start scan"
+            size_hint: .66, .065
+            pos_hint: {'center_x': 0.5, 'center_y': 0.3}  # Position ajustée
+            on_release: 
+                root.manager.transition.direction = "left"
+                app.navigate("camera_screen")

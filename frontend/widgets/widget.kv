@@ -1,0 +1,27 @@
+<Textinput@MDTextField>:
+    multiline: False
+    mode: 'rectangle'
+    size_hint_x: 1
+    line_color_normal: rgba('#6A707C')
+    line_color_focus: rgba('#283F5E')
+    on_text: app.filter_spaces_and_tabs(*args)
+<RoundedButton@Button>:
+    size_hint_y: None
+    height: "48dp"
+    background_color: 0, 0, 0, 0
+
+    canvas.before:
+        Color: 
+            rgb: rgba(41, 64, 94, 1)
+        RoundedRectangle:
+            size: self.size
+            pos: self.pos
+            radius: [5]
+<TopBar@MDTopAppBar>:
+    left_action_items: [["arrow-left", lambda x: app.go_back()]]
+    right_action_items: [["menu", lambda x: app.open_menu()]]
+    size_hint_y: None
+    height: "60dp"
+    title_align: "center" 
+    md_bg_color: 0.16, 0.25, 0.37, 1
+    pos_hint: {"top": 1}

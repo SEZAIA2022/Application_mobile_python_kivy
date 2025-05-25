@@ -1,0 +1,57 @@
+<QuestionScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+
+        # Ajout de MDTopAppBar
+        TopBar:
+            title: "QUESTIONS"
+            right_action_items: [["account-question"]]
+          
+        AnchorLayout:
+            id: table_container
+            orientation: 'vertical'
+            size_hint: 1, 0.8  # Table occupe 80% de l'écran
+
+        MDTextField:
+            id: new_question_text
+            hint_text: "Write a new question"
+            icon_right: "chat-question"
+            size_hint_x: .7
+            pos_hint: {"center_x": 0.5}
+
+        MDFloatLayout:
+            id: float_id_response
+            md_bg_color: 245 / 255, 245 / 255, 245 / 255, 1
+            size_hint_y: 0.11
+            size_hint_x: 1
+            pos_hint: {"x": 0, "y": 0}
+            opacity: 1  # Rendre invisible
+            disabled: False  # Empêche toute interaction avec le layout
+            spacing: .1
+
+            MDFlatButton:
+                text: "Add Question"
+                size_hint: None, None
+                size_hint_x: .3
+                pos_hint: {"center_x": 0.3, "center_y": 0.5}
+                md_bg_color: 0.16, 0.25, 0.37, 1  # Fond bleu foncé
+                text_color: 1, 1, 1, 1  # Texte en blanc
+                theme_text_color: "Custom"
+                on_release: root.add_question()
+
+            MDFlatButton:
+                text: "Delete Question"
+                background_color: 0, 0, 0, 
+                size_hint: None, None
+                size_hint_x: .3
+                pos_hint: {"center_x": 0.7, "center_y": 0.5}
+                md_bg_color: 0, 0, 0, 0 # Couleur d'arrière-plan (rouge)
+                text_color: 0.16, 0.25, 0.37, 1  # Texte en bleu foncé
+                theme_text_color: "Custom"
+                on_release: root.delete_question()
+                canvas.before:
+                    Color:
+                        rgba: 0.16, 0.25, 0.37, 1  # Bordure bleu foncé
+                    Line:
+                        width: 1.2
+                        rounded_rectangle: self.x, self.y, self.width, self.height, 5, 5, 5, 5, 100  # Coins arrondis

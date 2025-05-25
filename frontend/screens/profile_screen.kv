@@ -1,0 +1,170 @@
+<ProfileScreen>:
+    name: "profile_screen"
+    MDBoxLayout:
+        orientation: 'vertical'
+        TopBar:
+            title: "PROFILE"           
+            right_action_items: [["account-circle"]]
+           
+        ScrollView:
+            size_hint_y: 1
+            pos_hint: {"x": 0, "y": -.071}
+            do_scroll_x: False
+            do_scroll_y: True
+
+            MDBoxLayout:
+                orientation: "vertical"
+                padding: "16dp"
+                spacing: "10dp"
+                size_hint_y: None
+                height: self.minimum_height
+
+                # Section: Change Username
+                MDCard:
+                    orientation: "horizontal"
+                    size_hint: 1, None
+                    height: "70dp"
+                    spacing: "20dp"
+                    padding: "10dp"
+                    ripple_behavior: True
+                    on_release: app.navigate("change_username")
+
+                    MDIcon:
+                        icon: "account"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        padding_x: "10dp"
+
+                        MDLabel:
+                            text: "Change username"
+                            theme_text_color: "Primary"
+                            font_style: "Subtitle1"
+
+                        MDLabel:
+                            text: "your_user"
+                            theme_text_color: "Secondary"
+                            font_style: "Body2"
+
+                # Section: Change Email
+                MDCard:
+                    orientation: "horizontal"
+                    size_hint: 1, None
+                    height: "70dp"
+                    spacing: "20dp"
+                    padding: "10dp"
+                    ripple_behavior: True
+                    on_release: app.navigate("change_email")
+
+                    MDIcon:
+                        icon: "email"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        padding_x: "10dp"
+
+                        MDLabel:
+                            text: "Change email"
+                            theme_text_color: "Primary"
+                            font_style: "Subtitle1"
+
+                        MDLabel:
+                            text: "your_email"
+                            theme_text_color: "Secondary"
+                            font_style: "Body2"
+
+                # Section: Change Password
+                MDCard:
+                    orientation: "horizontal"
+                    size_hint: 1, None
+                    height: "70dp"
+                    spacing: "20dp"
+                    padding: "10dp"
+                    ripple_behavior: True
+                    on_release: app.navigate("change_password")
+
+                    MDIcon:
+                        icon: "lock"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        padding_x: "10dp"
+
+                        MDLabel:
+                            text: "Change password"
+                            theme_text_color: "Primary"
+                            font_style: "Subtitle1"
+
+                        MDLabel:
+                            text: "change_your_password"
+                            theme_text_color: "Secondary"
+                            font_style: "Body2"
+
+                # Section: Change Number
+                MDCard:
+                    orientation: "horizontal"
+                    size_hint: 1, None
+                    height: "70dp"
+                    spacing: "20dp"
+                    padding: "10dp"
+                    ripple_behavior: True
+                    on_release: app.navigate("change_number")
+
+                    MDIcon:
+                        icon: "phone"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        padding_x: "10dp"
+
+                        MDLabel:
+                            text: "Change number"
+                            theme_text_color: "Primary"
+                            font_style: "Subtitle1"
+
+                        MDLabel:
+                            text: "your_number"
+                            theme_text_color: "Secondary"
+                            font_style: "Body2"
+
+                # Séparateur visuel
+                MDSeparator:
+                    height: "1dp"
+                    color: rgba('#CCCCCC')
+
+                # Section: Delete Account
+                MDCard:
+                    orientation: "horizontal"
+                    size_hint: 1, None
+                    height: "70dp"
+                    spacing: "20dp"
+                    padding: "10dp"
+                    ripple_behavior: True
+                    on_release: app.navigate("delete_account")
+
+                    MDIcon:
+                        icon: "trash-can"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        padding_x: "10dp"
+
+                        MDLabel:
+                            text: "Delete account"
+                            theme_text_color: "Primary"
+                            font_style: "Subtitle1"

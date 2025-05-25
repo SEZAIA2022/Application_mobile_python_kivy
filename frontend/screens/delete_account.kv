@@ -1,0 +1,75 @@
+<DeleteAccountScreen>:
+    name: "delete_account"
+    TopBar:
+        title: "DELETE ACCOUNT"
+        right_action_items: [["trash-can"]]
+    
+    MDBoxLayout:
+        orientation: 'vertical'
+        spacing: 10
+        padding: 10
+
+        ScrollView:
+            size_hint_y: None
+            height: root.height - dp(80)
+            pos_hint: {"top": 1}
+            do_scroll_x: False
+            do_scroll_y: True
+
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: [40, 20, 40, 20]
+                spacing: 20
+
+                Textinput:
+                    id: email_delete
+                    hint_text: "Email"
+                    icon_right: "email"
+                   
+                Textinput:
+                    id: password
+                    hint_text: "Password"
+                    icon_right: "eye-off"
+                    password: True
+                   
+                Textinput:
+                    id: confirm_password
+                    hint_text: "Confirm Password"
+                    icon_right: "eye-off"
+                    password: True
+                    
+                BoxLayout:
+                    size_hint: 1, None
+                    height: "30dp"
+                    spacing: 10
+
+                    MDCheckbox:
+                        id: cb
+                        size_hint: None, None
+                        width: "30dp"
+                        height: "30dp"
+                        on_release:
+                            password.password = not password.password
+                            password.icon_right = "eye" if password.icon_right == "eye-off" else "eye-off"
+                            confirm_password.password = not confirm_password.password
+                            confirm_password.icon_right = "eye" if confirm_password.icon_right == "eye-off" else "eye-off"
+
+                    MDLabel:
+                        text: '[ref=Show Password]Show Password[/ref]'
+                        markup: True
+                        font_size: "14sp"
+                        color: rgba('#6A707C')
+                        on_ref_press:
+                            cb.active = not cb.active
+                            password.password = not password.password
+                            password.icon_right = "eye" if password.icon_right == "eye-off" else "eye-off"
+                            confirm_password.password = not confirm_password.password
+                            confirm_password.icon_right = "eye" if confirm_password.icon_right == "eye-off" else "eye-off"
+
+                RoundedButton:
+                    text: "Delete account"                   
+                    on_release: 
+                        root.delete_account()
+                   

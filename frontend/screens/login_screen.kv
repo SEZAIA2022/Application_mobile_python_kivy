@@ -1,0 +1,109 @@
+<LoginScreen>:
+    name: "login_screen"
+    TopBar:
+        title: "LOGIN"
+
+    MDBoxLayout:
+        orientation: 'vertical'
+        spacing: 10
+        padding: 10
+        
+        ScrollView:
+            size_hint_y: None
+            height: root.height - dp(140)  # Ajustement pour laisser de la place pour le bouton
+            pos_hint: {"top": 1}
+            do_scroll_x: False
+            do_scroll_y: True
+            
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: [40, 20, 40, 20]
+                spacing: 20
+                
+                Label:
+                    text: "Welcome back! Glad to see you, Again!"
+                    font_size: "24sp"
+                    bold: True
+                    color: rgba('#283F5E')
+                    size_hint_x: 1
+                    size_hint_y: None
+                    height: "50dp"
+                    text_size: self.width, None
+                    halign: 'center'
+                    valign: 'middle'
+                
+                Textinput:
+                    id: user_input
+                    mode: 'rectangle'
+                    hint_text: "Username or Email"
+                    icon_right: "account"
+                
+                Textinput:
+                    id: password_input
+                    hint_text: "Password"
+                    icon_right: "eye-off"
+                    password: True
+                    on_text: app.filter_spaces_and_tabs(*args)
+
+                BoxLayout:
+                    size_hint: 1, None
+                    height: "30dp"
+                    spacing: 10
+
+                    MDCheckbox:
+                        id: cb
+                        size_hint: None, None
+                        width: "30dp"
+                        height: "30dp"
+                        on_release:
+                            password_input.password = not password_input.password
+                            password_input.icon_right = "eye" if password_input.icon_right == "eye-off" else "eye-off"
+
+                    MDLabel:
+                        text: '[ref=Show Password]Show Password[/ref]'
+                        markup: True
+                        font_size: "14sp"
+                        color: rgba('#6A707C')
+                        on_ref_press:
+                            cb.active = not cb.active
+                            password_input.password = not password_input.password
+                            password_input.icon_right = "eye" if password_input.icon_right == "eye-off" else "eye-off"
+
+                RoundedButton:
+                    text: 'Login'
+                    on_release: 
+                        root.manager.transition.direction = "left" 
+                        root.login_action()
+
+                Label:
+                    text: "[u][ref=forget]Forgot Password?[/ref][/u]"
+                    markup: True
+                    size_hint_x: 1
+                    size_hint_y: None
+                    height: "30dp"
+                    font_size: "14sp"
+                    halign: 'center'
+                    color: rgba('#6A707C')
+                    on_ref_press: app.navigate("forget_screen")
+
+                Label:
+                    text: "OR"
+                    font_size: "20sp"
+                    markup: True
+                    color: rgba('#6A707C')
+                    size_hint_x: 1
+                    size_hint_y: None
+                    height: "30dp"
+                    halign: 'center'
+
+                Label:
+                    text: "[color=#6C6F72]Don't have an account?[/color] [u][color=#3BA8DA][ref=register]SIGN UP Now[/ref][/color][/u]"
+                    markup: True
+                    size_hint_x: 1
+                    size_hint_y: None
+                    height: "30dp"
+                    font_size: "14sp"
+                    halign: 'center'
+                    on_ref_press: app.navigate("register_screen")

@@ -1,0 +1,66 @@
+<ForgetPasswordScreen>:
+    name: "forget_screen"
+    TopBar:
+        title: "FORGET PASSWORD"
+       
+    MDBoxLayout:
+        orientation: 'vertical'
+        spacing: 10
+        padding: 10
+        ScrollView:
+            size_hint_y: None
+            height: root.height - dp(80)
+            pos_hint: {"top": 1}
+            do_scroll_x: False
+            do_scroll_y: True
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: [40, 20, 40, 20]
+                spacing: 20
+
+                Label:
+                    text: "Forgot Password ?"
+                    font_size: "36sp"
+                    bold: True
+                    color: rgba('#283F5E')
+                    size_hint_x: 1
+                    size_hint_y: None
+                    height: "50dp"
+                    text_size: self.width, None
+                    halign: 'center'
+                    valign: 'middle'
+
+                Label:
+                    text: "[i]Don't worry! It occurs. Please enter the email address linked with your account.[/i]"
+                    markup: True
+                    font_size: "19sp"
+                    color: rgba('#6A707C')
+                    size_hint_x: 1
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    text_size: self.width, None
+                    halign: 'center'
+                    valign: 'middle'
+
+                Textinput:
+                    id: email_forget
+                    hint_text: "Username Or Email"
+                    icon_right: "account"
+                   
+                RoundedButton:
+                    text: 'Continue'                   
+                    on_release: 
+                        root.manager.transition.direction = "left"
+                        root.verification_action()
+                   
+                Label:
+                    text: "[color=#6C6F72]Did you remember your password?[/color] [u][color=#3BA8DA][ref=login]Login Now[/ref][/color][/u]"
+                    markup: True
+                    size_hint_x: 1
+                    size_hint_y: None
+                    height: "30dp"
+                    font_size: "14sp"
+                    halign: 'center'
+                    on_ref_press: app.navigate("login_screen")

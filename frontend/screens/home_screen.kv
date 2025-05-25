@@ -1,0 +1,47 @@
+<HomeScreen>:
+    name: "home_screen"
+    MDFloatLayout:
+        TopBar:
+            title: "SEZAIA APP"
+            right_action_items: [["menu", lambda x: app.open_menu()]]
+        Image:
+            source: "assets/sezaia_logo1 1.png"
+            size_hint: .8, .8
+            pos_hint:{"center_x": .5, "center_y": .65}
+        MDLabel:
+            text: 'H E L L O  !'
+            font_size: "23sp"
+            pos_hint: {"center_y": .38}
+            halign: 'center'
+            color: rgba(34, 34, 34, 255)
+        MDLabel:
+            text: 'Simplify the repair of your software with our dedicated application, designed to optimize and restore software developed by our company.'
+            font_size: "13sp"
+            pos_hint: {"center_x": .5, "center_y": .3}
+            size_hint_x: .85
+            halign: 'center'
+            color: rgba(127, 127, 127, 255)
+        RoundedButton:
+            text: 'LOGIN'
+            size_hint: .66, .065
+            pos_hint: {"center_x": .5, "center_y": .18}
+            on_release: 
+
+                app.navigate("login_screen")
+
+        Button:
+            text: 'SIGN UP'
+            size_hint: .66, .065
+            pos_hint: {"center_x": .5, "center_y": .09}
+            background_color: 0, 0, 0, 0
+            color: 0.16, 0.25, 0.37, 1
+            on_release: 
+                root.manager.transition.direction = "left"
+                app.navigate("register_screen")
+            canvas.before:
+                Color: 
+                    rgb: rgba(41, 64, 94, 1)
+                Line: 
+                    width: 1.2
+                    rounded_rectangle: self.x, self.y, self.width, self.height, 5, 5, 5, 5, 100
+

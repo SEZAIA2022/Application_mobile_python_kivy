@@ -1,0 +1,57 @@
+<AddQrCode>:
+    name: "add_qrcode"
+    TopBar:
+        title: "ADD QRCODE"
+
+    MDBoxLayout:
+        orientation: 'vertical'
+        spacing: 10
+        padding: 10
+        ScrollView:
+            size_hint_y: None
+            height: root.height - dp(80)
+            pos_hint: {"top": 1}
+            do_scroll_x: False
+            do_scroll_y: True
+
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: [40, 20, 40, 20]
+                spacing: 20
+
+                Label:
+                    text: "Add new qrcode"
+                    font_size: "24sp"
+                    bold: True
+                    color: rgba('#283F5E')
+                    size_hint_x: 1
+                    size_hint_y: None
+                    height: "50dp"
+                    text_size: self.width, None
+                    halign: 'center'
+                    valign: 'middle'
+                Textinput:
+                    id: qr_code
+                    hint_text: "Qrcode"
+                    icon_right: "qrcode"
+                    multiline: False
+                   
+                Textinput:
+                    id: user_qr
+                    hint_text: "Username of qrcode"
+                    icon_right: "account"
+                    multiline: False
+                
+                Textinput:
+                    id: location_qr
+                    hint_text: "Location of qrcode"
+                    icon_right: "map-marker"
+                    multiline: False
+
+                RoundedButton:
+                    text: 'ADD'
+                    on_release: 
+                        root.manager.transition.direction = "left"
+                        root.add_qr()

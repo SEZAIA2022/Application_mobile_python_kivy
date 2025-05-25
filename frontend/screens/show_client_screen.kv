@@ -1,0 +1,104 @@
+<ShowClientScreen>:
+    name: "show_client_screen"
+    BoxLayout:
+        orientation: 'vertical'
+
+        # Ajout de MDTopAppBar
+        TopBar:
+            title: "CLIENTS"
+            
+        # Conteneur du tableau
+        AnchorLayout:
+            id: table_container
+            orientation: 'vertical'
+            size_hint: 1, 0.5  # Table occupe 80% de l'écran
+
+        Textinput:
+            id: new_user_text
+            hint_text: "Write a new user"
+            icon_right: "account"
+            size_hint_x: .7
+            pos_hint: {"center_x": 0.5}
+        Textinput:
+            id: new_email_text
+            hint_text: "Write a new email"
+            icon_right: "email"           
+            size_hint_x: .7            
+            pos_hint: {"center_x": 0.5}
+        MDFloatLayout:
+            size_hint_y: 0.11
+            size_hint_x: 1
+            pos_hint: {"x": 0}
+            opacity: 1  # Rendre invisible
+            disabled: False  # Empêche toute interaction avec le layout
+            spacing: .1
+            MDCheckbox:
+                id: admin_checkbox
+                size_hint: None, None
+                pos_hint: {"center_x": 0.3, "center_y": 0.5}
+                active: False
+                on_active: root.on_checkbox_active(self, self.active)
+            MDLabel:
+                id: admin
+                text: "Admin"
+                size_hint: None, None
+                pos_hint: {"center_x": 0.4, "center_y": 0.5}
+                halign: "center"
+                valign: "middle"
+                size_hint_x: None
+                width: "100dp"
+
+            MDCheckbox:
+                id: user_checkbox
+                size_hint: None, None
+                active: False
+                pos_hint: {"center_x": 0.6, "center_y": 0.5}
+                on_active: root.on_checkbox_active(self, self.active)
+            MDLabel:
+                id: user
+                text: "User"
+                size_hint: None, None
+                pos_hint: {"center_x": 0.7, "center_y": 0.5}
+                halign: "center"
+                valign: "middle"
+                size_hint_x: None
+                width: "100dp"
+
+            
+
+        MDFloatLayout:
+            id: float_id_user
+            md_bg_color: 245 / 255, 245 / 255, 245 / 255, 1
+            size_hint_y: 0.11
+            size_hint_x: 1
+            pos_hint: {"x": 0, "y": 0}
+            opacity: 1  # Rendre invisible
+            disabled: False  # Empêche toute interaction avec le layout
+            spacing: .1
+
+            MDFlatButton:
+                text: "Add User"
+                size_hint: None, None
+                size_hint_x: .3
+                pos_hint: {"center_x": 0.3, "center_y": 0.5}
+                md_bg_color: 0.16, 0.25, 0.37, 1  # Fond bleu foncé
+                text_color: 1, 1, 1, 1  # Texte en blanc
+                theme_text_color: "Custom"
+                on_release: root.add_user()
+
+            MDFlatButton:
+                text: "Delete User"
+                background_color: 0, 0, 0, 
+                size_hint: None, None
+                size_hint_x: .3
+                pos_hint: {"center_x": 0.7, "center_y": 0.5}
+                md_bg_color: 0, 0, 0, 0 # Couleur d'arrière-plan (rouge)
+                text_color: 0.16, 0.25, 0.37, 1  # Texte en bleu foncé
+                theme_text_color: "Custom"
+                on_release: root.delete_user()
+                canvas.before:
+                    Color:
+                        rgba: 0.16, 0.25, 0.37, 1  # Bordure bleu foncé
+                    Line:
+                        width: 1.2
+                        rounded_rectangle: self.x, self.y, self.width, self.height, 5, 5, 5, 5, 100  # Coins arrondis

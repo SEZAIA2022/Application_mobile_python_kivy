@@ -1,0 +1,68 @@
+<ChatBotWelcomeScreen>:
+    name: "chatbot_welcome_screen"
+    TopBar:
+        title: "CHATBOT"
+        left_action_items: [["arrow-left", lambda x: app.go_back()]]
+        right_action_items: [["menu", lambda x: app.open_menu()]]
+      
+    MDBoxLayout:
+        orientation: 'vertical'
+        spacing: 10
+        padding: 10
+
+        ScrollView:
+            size_hint_y: None
+            height: root.height - dp(80)
+            pos_hint: {"top": 1}
+            do_scroll_x: False
+            do_scroll_y: True
+
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: [40, 20, 40, 20]
+                spacing: 20
+
+                Image:
+                    source: "assets/chatbots.png"
+                    size_hint: None, None
+                    size: "300dp", "200dp"
+                    pos_hint: {"center_x": 0.5}
+
+                Label:
+                    text: "Welcome to our chatbot?"
+                    font_size: "24sp"
+                    bold: True
+                    color: rgba('#283F5E')
+                    size_hint_x: 1
+                    size_hint_y: None
+                    height: "50dp"
+                    text_size: self.width, None
+                    halign: 'center'
+                    valign: 'middle'
+
+                Label:
+                    text: "[i]By answering our questions, you help us accelerate the resolution of your issues and ensure a technician is sent as quickly as possible.[/i]"
+                    markup: True
+                    font_size: "16sp"
+                    color: rgba('#6A707C')
+                    size_hint_x: 1
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    text_size: self.width, None
+                    halign: 'center'
+                    valign: 'middle'
+
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: "80dp"
+                    padding: [0, 20, 0, 0]
+                    spacing: 10
+
+                    RoundedButton:
+                        text: 'Continue'                        
+                        on_release: 
+                            app.navigate("chatbot_screen")
+                    

@@ -1,0 +1,63 @@
+<SuccessScreen>:
+    name: "success_screen"
+    TopBar:
+        title: "SUCCESS"
+    
+    MDBoxLayout:
+        orientation: 'vertical'
+        spacing: 10
+        padding: 10
+
+        ScrollView:
+            size_hint_y: None
+            height: root.height - dp(80)
+            pos_hint: {"top": 1}
+            do_scroll_x: False
+            do_scroll_y: True
+
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: [40, 20, 40, 20]
+                spacing: 20
+
+                Image:
+                    id: image
+                    source: 'assets/success.png'
+                    size_hint: None, None
+                    size: "200dp", "200dp"
+                    pos_hint: {"center_x": 0.5}
+
+                Label:
+                    id: label_title
+                    text: "Password Changed !"
+                    font_size: "36sp"
+                    bold: True
+                    color: rgba('#283F5E')
+                    size_hint_x: 1
+                    size_hint_y: None
+                    height: "50dp"
+                    text_size: self.width, None
+                    halign: 'center'
+                    valign: 'middle'
+
+                Label:
+                    text: "[i]Congratulations ! Your password has been changed successfully.[/i]"
+                    id: label_content
+                    markup: True
+                    font_size: "19sp"
+                    color: rgba('#6A707C')
+                    size_hint_x: 1
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    text_size: self.width, None
+                    halign: 'center'
+                    valign: 'middle'
+
+                RoundedButton:
+                    id: button
+                    text: "Back To Login"
+                    size_hint: .66, .065
+                    on_release: 
+                        app.navigate("login_screen")

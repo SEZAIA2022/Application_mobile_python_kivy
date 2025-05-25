@@ -1,0 +1,110 @@
+<VerificationScreen>:
+    name: "verification_screen"
+    TopBar:
+        title: "OTP VERIFICATION"
+       
+    MDBoxLayout:
+        orientation: 'vertical'
+        spacing: 10
+        padding: 10
+        ScrollView:
+            size_hint_y: None
+            height: root.height - dp(80)
+            pos_hint: {"top": 1}
+            do_scroll_x: False
+            do_scroll_y: True
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: [40, 20, 40, 20]
+                spacing: 20
+
+                Label:
+                    text: "OTP Verification"
+                    font_size: "36sp"
+                    bold: True
+                    color: rgba('#283F5E')
+                    size_hint_y: None
+                    height: "50dp"
+                    text_size: self.width, None
+                    halign: 'center'
+                    valign: 'middle'
+
+                Label:
+                    text: "[i]Enter the verification code we just sent on your email address.[/i]"
+                    markup: True
+                    font_size: "19sp"
+                    color: rgba('#6A707C')
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    text_size: self.width, None
+                    halign: 'center'
+                    valign: 'middle'
+
+                BoxLayout:
+                    orientation: 'horizontal'
+                    spacing: 20
+                    size_hint_y: None
+                    height: "80dp"
+                    size_hint_x: None
+                    width: self.minimum_width
+                    pos_hint: {"center_x": 0.5}
+
+                    MDTextField: 
+                        id: otp_input_1 
+                        font_size: 32 
+                        size_hint_x: None
+                        width: "70dp"
+                        max_text_length: 1
+                        input_filter: 'int'
+                        text_validate_unfocus: False
+                        halign: "center"
+                        on_text: app.move_focus(self, otp_input_2, None)
+
+                    MDTextField: 
+                        id: otp_input_2 
+                        font_size: 32 
+                        size_hint_x: None
+                        width: "70dp"
+                        max_text_length: 1
+                        input_filter: 'int'
+                        text_validate_unfocus: False
+                        halign: "center"
+                        on_text: app.move_focus(self, otp_input_3, otp_input_1)
+
+                    MDTextField: 
+                        id: otp_input_3 
+                        font_size: 32 
+                        size_hint_x: None
+                        width: "70dp"
+                        max_text_length: 1
+                        input_filter: 'int'
+                        text_validate_unfocus: False
+                        halign: "center"
+                        on_text: app.move_focus(self, otp_input_4, otp_input_2)
+
+                    MDTextField: 
+                        id: otp_input_4 
+                        font_size: 32 
+                        size_hint_x: None
+                        width: "70dp"
+                        max_text_length: 1
+                        input_filter: 'int'
+                        halign: "center"
+                        on_text:  app.move_focus(self, None, otp_input_3)
+                RoundedButton:
+                    text: "Verify"
+                    on_release: 
+                        root.manager.transition.direction = "left"
+                        root.verify_action()
+                   
+                Label:
+                    text: "[color=#6C6F72]Didn't receive the code?[/color] [u][color=#3BA8DA][ref=resend]Resend[/ref][/color][/u]"
+                    markup: True
+                    size_hint_y: None
+                    height: "30dp"
+                    font_size: "14sp"
+                    halign: 'center'
+                    pos_hint: {"center_x": 0.5}
+                    on_ref_press: root.resend_otp()

@@ -1,0 +1,182 @@
+<MenuScreen>:
+    name: "menu_screen"
+    MDBoxLayout:
+        orientation: 'vertical'
+        TopBar:
+            title: "Settings"
+            right_action_items: [["cog-outline"]]
+           
+        ScrollView:
+            size_hint_y: 1 
+            pos_hint: {"x": 0, "y": -.071}
+            do_scroll_x: False
+            do_scroll_y: True
+            MDBoxLayout: 
+                orientation: "vertical"
+                padding: "16dp"
+                spacing: "10dp"
+                size_hint_y: None
+                height: self.minimum_height
+
+                MDCard:
+                    id: profile
+                    opacity: 0 if self.disabled else 1
+                    disabled: True
+                    orientation: "horizontal"
+                    size_hint: 1, None if self.disabled else None
+                    height: 0 if self.disabled else "70dp"
+                    spacing: 40
+                    padding: "10dp"
+                    ripple_behavior: True
+                    on_release: app.navigate("profile_screen")
+
+                    MDIcon:
+                        icon: "account-circle"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        padding_x: "10dp"
+
+                        MDLabel:
+                            text: "My profile"
+                            theme_text_color: "Primary"
+                            font_style: "Subtitle1"
+
+                        MDLabel:
+                            text: "username, password, email..."
+                            theme_text_color: "Secondary"
+                            font_style: "Caption"
+
+
+                MDCard:
+                    orientation: "horizontal"
+                    size_hint: 1, None
+                    spacing: 40
+                    height: "70dp"
+                    padding: "10dp"
+                    ripple_behavior: True
+                    on_release: app.navigate("about_screen")
+
+                    MDIcon:
+                        icon: "information"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        padding_x: "10dp"
+
+                        MDLabel:
+                            text: "About us"
+                            theme_text_color: "Primary"
+
+
+                MDCard:
+                    spacing: 40
+                    orientation: "horizontal"
+                    size_hint: 1, None
+                    height: "70dp"
+                    padding: "10dp"
+                    ripple_behavior: True
+                    on_release: app.navigate("privacy_screen")
+
+                    MDIcon:
+                        icon: "lock"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        padding_x: "10dp"
+
+                        MDLabel:
+                            text: "Privacy policy"
+                            theme_text_color: "Primary"
+
+
+                MDCard:
+                    spacing: 40
+                    orientation: "horizontal"
+                    size_hint: 1, None
+                    height: "70dp"
+                    padding: "10dp"
+                    ripple_behavior: True
+                    on_release: app.navigate("terms_of_use_screen")
+
+                    MDIcon:
+                        icon:"file-document-outline"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        padding_x: "10dp"
+
+                        MDLabel:
+                            text: "Terms of use"
+                            theme_text_color: "Primary"
+
+
+
+                MDCard:
+                    spacing: 40
+                    orientation: "horizontal"
+                    size_hint: 1, None
+                    height: "70dp"
+                    padding: "10dp"
+                    ripple_behavior: True
+                    on_release: app.navigate("language_screen")
+
+                    MDIcon:
+                        icon: "web"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        padding_x: "10dp"
+
+                        MDLabel:
+                            text: "Language"
+                            theme_text_color: "Primary"
+
+                 # Séparateur visuel
+                MDSeparator:
+                    height: "1dp"
+                    color: rgba('#CCCCCC')
+                    
+                MDCard:
+                    id: logout
+                    opacity: 0 if self.disabled else 1
+                    disabled: True
+                    size_hint: 1, None if self.disabled else None
+                    height: 0 if self.disabled else "70dp"
+                    spacing: 40
+                    orientation: "horizontal"
+                    padding: "10dp"
+                    ripple_behavior: True
+                    on_release: root.logout()
+
+                    MDIcon:
+                        icon: "exit-to-app"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_y": 0.5}
+
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        padding_x: "10dp"
+
+                        MDLabel:
+                            text: "Logout"
+                            theme_text_color: "Primary"
+
+
+

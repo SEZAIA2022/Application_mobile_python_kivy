@@ -1,0 +1,57 @@
+<RendezVous>:
+    name: 'rendez_vous'
+    TopBar:
+        title: "REQUEST TECHNICIENT"
+
+    MDBoxLayout:
+        orientation: 'vertical'
+        spacing: 10
+        padding: 10
+
+        ScrollView:
+            size_hint_y: None
+            height: root.height - dp(80)
+            pos_hint: {"top": 1}
+            do_scroll_x: False
+            do_scroll_y: True
+
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: [40, 20, 40, 20]
+                spacing: 20
+                Textinput:
+                    id: city_label
+                    mode: "rectangle"
+                    hint_text: "City"
+                    icon_right: "menu-down-outline"
+                    on_focus:  if self.focus: root.menu.open()
+                Textinput:
+                    id: tech_label
+                    mode: "rectangle"
+                    hint_text: "technicien"
+                    icon_right: "menu-down-outline"
+                    on_focus:  if self.focus: root.tech.open()
+                Textinput:
+                    id: date_label
+                    mode: "rectangle"                   
+                    hint_text: "Docked date picker"
+                    helper_text: "YYYY/MM/DD"
+                    helper_text_mode: "persistent"
+                    icon_right: "calendar"
+                    on_focus:  if self.focus: root.show_date_picker()
+
+                Textinput:
+                    id: text_input                   
+                    mode: "rectangle"
+                    hint_text: "Type your comment..."
+                    icon_right: "comment-outline"                  
+                    foreground_color: 0.157, 0.247, 0.369, 1
+                    background_color: 0, 0, 0, 0
+                RoundedButton:
+                    text: 'Confirm request'                    
+                    on_release: 
+                        root.manager.transition.direction = "left"
+                        root.save()
+                 

@@ -1,0 +1,152 @@
+<Command>:
+    size_hint_y: None
+    pos_hint: {"x": .02}
+    height: self.texture_size[1]
+    padding: 12, 10
+
+    canvas.before: 
+        Color: 
+            rgb: (1, 1, 1, 1)
+        RoundedRectangle: 
+            size: self.width, self.height
+            pos: self.pos
+            radius: [23, 23, 23, 0]
+
+<Response>:
+    size_hint_y: None
+    pos_hint: {"right": .98}
+    height: self.texture_size[1]
+    padding: 12, 10
+    theme_text_color: 'Custom'
+    text_color: 1, 1, 1, 1
+    canvas.before: 
+        Color: 
+            rgb: (0.157, 0.247, 0.369, 1)
+        RoundedRectangle: 
+            size: self.width, self.height
+            pos: self.pos
+            radius: [23, 23, 0, 23]
+
+<ChatBotScreen>:
+    name: "chatbot_screen"
+    chat_list: chat_list
+
+    MDFloatLayout:
+        # Barre supérieure de l'application
+        TopBar:
+            title: "CHATBOT"
+            left_action_items: [["arrow-left", lambda x: app.go_back()]]
+           
+        # Zone pour afficher la conversation
+        ScrollView:
+            size_hint_y: 0.77
+            pos_hint: {"x": 0, "y": 0.116}
+            do_scroll_x: False
+            do_scroll_y: True
+            BoxLayout:
+                id: chat_list
+                orientation: 'vertical'
+                size: root.width, self.minimum_height
+                size_hint: None, None
+                height: self.minimum_height
+                pos_hint: {"x": 0, "top": 1}
+                spacing: 5
+
+        # Zone pour les boutons "Yes" et "No"
+        MDFloatLayout:
+            id: float_id_response
+            md_bg_color: 245 / 255, 245 / 255, 245 / 255, 1
+            size_hint_y: 0.11
+            size_hint_x: 1
+            pos_hint: {"x": 0, "y": 0}
+            opacity: 1  
+            disabled: False  
+            spacing: .1
+            MDFlatButton:
+                id: btn_chat
+                text: 'Continue'
+                opacity: 0  
+                disabled: True  
+                size_hint: None, None
+                size_hint_x: .66
+                pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                md_bg_color: 0.16, 0.25, 0.37, 1
+                text_color: 1, 1, 1, 1 
+                theme_text_color: "Custom"
+                on_release: root.on_finish()
+                
+            # Bouton "Yes"
+            MDFlatButton:
+                id: button_yes
+                text: "Yes"
+                size_hint: None, None
+                size_hint_x: .3
+                pos_hint: {"center_x": 0.3, "center_y": 0.5}
+                md_bg_color: 0.16, 0.25, 0.37, 1 
+                text_color: 1, 1, 1, 1  
+                theme_text_color: "Custom"
+                on_release: root.send("yes")  
+
+            # Bouton "No"
+            MDFlatButton:
+                id: button_no
+                text: "No"
+                size_hint: None, None
+                size_hint_x: .3
+                pos_hint: {"center_x": 0.7, "center_y": 0.5}
+                md_bg_color: 0, 0, 0, 0 
+                text_color: 0.16, 0.25, 0.37, 1 
+                theme_text_color: "Custom"
+                on_release: root.send("no")  
+                canvas.before:
+                    Color:
+                        rgba: 0.16, 0.25, 0.37, 1  
+                    Line:
+                        width: 1.2
+                        rounded_rectangle: self.x, self.y, self.width, self.height, 5, 5, 5, 5, 100  # Coins arrondis
+        
+        # # Zone pour le commentaire et le TextInput
+        # MDFloatLayout:
+        #     id: float_id_comment
+        #     opacity: 0  # Rendre invisible
+        #     disabled: True  # Empêche toute interaction avec le layout
+        #     md_bg_color: 245 / 255, 245 / 255, 245 / 255, 1
+        #     size_hint_y: .11
+        #     pos_hint: {"x": 0, "y": 0.11}  # Aligner avec la zone des boutons, ajuster 'y' si nécessaire
+
+            # # Zone avec TextInput et bouton d'envoi
+            # MDFloatLayout:
+            #     size_hint: .8, .75
+            #     pos_hint: {"center_x": .45, "center_y": .5}
+            #     canvas:
+            #         Color:
+            #             rgb: (238 / 255, 238 / 255, 238 / 255, 1)
+            #         RoundedRectangle:
+            #             size: self.size
+            #             pos: self.pos
+            #             radius: [23, 23, 23, 23]
+
+            #     TextInput:
+            #         id: text_input
+            #         hint_text: "Type your comment..."
+            #         size_hint: 0.8, None
+            #         pos_hint: {"center_x": .45, "center_y": .5}
+            #         font_size: "18sp"
+            #         height: self.minimum_height
+            #         cursor_color: 1, 170 / 255, 23 / 255, 1
+            #         cursor_width: "2sp"
+            #         foreground_color: 0.157, 0.247, 0.369, 1
+            #         background_color: 0, 0, 0, 0
+            #         padding: 15
+            #         font_name: 'Poppins'
+
+            # # Bouton d'envoi
+            # MDIconButton:
+            #     icon: 'send'
+            #     pos_hint: {"center_x": .9, "center_y": .5}
+            #     user_font_size: "18sp"
+            #     theme_text_color: 'Custom'
+            #     text_color: 1, 1, 1, 1
+            #     md_bg_color:0.157, 0.247, 0.369, 1
+            #     # on_release: root.on_finish()
+            #     on_release: app.navigate("pays_technicien")
