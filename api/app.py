@@ -73,6 +73,7 @@ def get_db_connection():
     return mysql.connector.connect(**db_config)
 
 
+
 @app.route('/api/endpoint', methods=['GET'])
 def my_endpoint():
     return {"message": "Hello, world!"}
@@ -94,7 +95,7 @@ def login():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM users WHERE username=%s OR email=%s", (username, username))
-        user = cursor.fetchone()
+        users = cursor.fetchone()
     except mysql.connector.Error as err:
         return jsonify({'status': 'error', 'message': f'Database error: {str(err)}'}), 500
     finally:
@@ -102,14 +103,16 @@ def login():
             cursor.close()
             conn.close()
 
-    if not user:
+    if not users:
         return jsonify({'status': 'error', 'message': "Incorrect username or password."}), 404
 
     try:
-        hashed_password = user[2].encode('utf-8') if isinstance(user[2], str) else user[2]
+        hashed_password = users[2].encode('utf-8') if isinstance(users[2], str) else users[2]
         if verify_password(password, hashed_password):
-            role = user[7]
-            return jsonify({'status': 'success', 'message': "Login successful!", 'role': role}), 200
+            role = users[7]
+            user = users[1]
+            email = users[3]
+            return jsonify({'status': 'success', 'message': "Login successful!", 'role': role, 'user': user, 'email': email}), 200
         else:
             return jsonify({'status': 'error', 'message': "Incorrect username or password."}), 401
     except Exception as e:
@@ -285,8 +288,6 @@ def resend_otp():
         return jsonify({'status': 'error', "message": f"Error while regenerating the OTP: {str(e)}"}), 500
 
 
-
-
 data_store = {"qr_data": ""}
 @app.route('/receive_qr', methods=['POST'])
 def receive_qr():
@@ -348,7 +349,6 @@ def save_response():
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Erreur : {str(e)}'}), 500
     
-
 
 @app.route('/send_ask', methods=['POST'])
 def send_ask():
@@ -441,7 +441,6 @@ def verify_forget():
         return jsonify({'status': 'error', "message": "Invalid token."}), 401
     except Exception as e:
         return jsonify({'status': 'error', "message": str(e)}), 500
-
 
 
 @app.route('/change-password', methods=['POST'])
@@ -591,6 +590,7 @@ def change_email():
             return jsonify({'status': 'error', 'message': "User not found or incorrect password."}), 401
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Processing error: {str(e)}'}), 500
+    
 
 @app.route('/verify_change_email', methods=['POST'])
 def verify_change_email():
@@ -669,8 +669,6 @@ def change_number():
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Processing error.: {str(e)}'}), 500
     
-
-
 
 @app.route('/change_password', methods=['POST'])
 def change_password():
@@ -863,6 +861,7 @@ def add_qr():
             cursor.close()
             conn.close()
 
+
 @app.route('/exist_qr', methods=['POST'])
 def exist_qr():
     data = request.get_json()
@@ -871,7 +870,7 @@ def exist_qr():
     
     qr_code = data.get('qr_code')
     if not qr_code:
-        return jsonify({'status': 'error', 'message': 'Username or email and password required.'}), 400
+        return jsonify({'status': 'error', 'message': 'Qr code is required.'}), 400
 
     try:
         # Connexion à la base de données MySQL
@@ -891,8 +890,8 @@ def exist_qr():
             conn.close()
 
 
-@app.route('/get_qr', methods=['GET'])
-def get_qr():
+# @app.route('/get_qr', methods=['GET'])
+# def get_qr():
     try:
         # Connexion à la base de données MySQL
         conn = get_db_connection()
@@ -909,9 +908,6 @@ def get_qr():
         if conn:
             cursor.close()
             conn.close()
-
-
-
 
 
 @app.route('/add_question', methods=['POST'])
@@ -1032,7 +1028,6 @@ def add_user():
             conn.close()
 
 
-
 @app.route('/delete_user/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
     try:
@@ -1050,7 +1045,6 @@ def delete_user(user_id):
         if conn:
             cursor.close()
             conn.close()
-
 
 
 @app.route('/techniciens', methods=['GET'])
