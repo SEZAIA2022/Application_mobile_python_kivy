@@ -8,4 +8,4 @@ opencv-python==4.11.0.86
 pyzbar==0.1.9
 plyer==2.1.0
 asynckivy==0.7.1
-flask-cors=6.0.0
+flask-cors==6.0.0
