@@ -25,10 +25,10 @@ def send_response_to_api(question_id, response_text, username, qr_code):
         print(f"Error while communicating with the API: {e}")
         toast(f"API request error: {e}")
 
-def send_ask(username, qr_code, tech_name, date, comment):
+def send_ask(username, qr_code,date, comment):
     url = f"{API_BASE_URL}/send_ask"
     try:
-        data = {'username': username, 'qr_code': qr_code, 'tech_name': tech_name, 'date': date, 'comment': comment}
+        data = {'username': username, 'qr_code': qr_code, 'date': date, 'comment': comment}
         response = requests.post(url, json=data)
         if response.status_code == 200:
             print(response.json().get('message', 'Request sent successfully.'))
@@ -201,8 +201,7 @@ class RendezVous(Screen):
                     )
                 date = self.ids.date_label.text
                 comment = self.ids.text_input.text
-                tech_name = self.ids.tech_label.text
-                send_ask(username, qr_code, tech_name, date, comment)
+                send_ask(username, qr_code, date, comment)
                 send_info_email(email, username)
                 # Mise à jour de l'interface utilisateur
                 self.manager.get_screen('success_screen').ids.label_title.text = "Your request has been successfully registered!"

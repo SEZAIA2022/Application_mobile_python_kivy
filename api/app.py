@@ -324,30 +324,38 @@ def get_questions():
 @app.route('/save_response', methods=['POST'])
 def save_response():
     try:
-        data = request.get_json()  # Récupérer les données envoyées par le client
+        data = request.get_json()
+        print("Received data:", data)  # DEBUG: Afficher les données reçues
+
         question_id = data.get('question_id')
         response_text = data.get('response')
         username = data.get('username')
         qr_code = data.get('qr_code')
-        # Vérification si les données sont présentes
+
         if not question_id or not response_text or not username or not qr_code:
             return jsonify({'status': 'error', 'message': "Missing data."}), 400
-        
-        # Insertion de la réponse dans la base de données
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO responses (question_id, response, username, qr_code) VALUES (%s, %s, %s,%s)", (question_id, response_text, username, qr_code))
-        conn.commit()  # Confirmer l'insertion
+
+        # DEBUG : Afficher la requête et les valeurs
+        print(f"Inserting: {question_id}, {response_text}, {username}, {qr_code}")
+
+        cursor.execute(
+            "INSERT INTO responses (question_id, response, username, qr_code) VALUES (%s, %s, %s, %s)",
+            (question_id, response_text, username, qr_code)
+        )
+        conn.commit()
 
         cursor.close()
         conn.close()
 
         return jsonify({'status': 'success', 'message': "Response saved."}), 200
 
-    except mysql.connector.Error as err:
-        return jsonify({'status': 'error', 'message': f'Database error:{err}'}), 500
     except Exception as e:
+        print("Error:", e)  # Affiche l'erreur complète dans la console
         return jsonify({'status': 'error', 'message': f'Erreur : {str(e)}'}), 500
+
     
 
 @app.route('/send_ask', methods=['POST'])
@@ -355,18 +363,17 @@ def send_ask():
     try:
         data = request.get_json()  # Récupérer les données envoyées par le client
         username = data.get('username')
-        tech_name = data.get('tech_name')
         date = data.get("date")
         comment = data.get('comment')
         qr_code = data.get('qr_code')
         # Vérification si les données sont présentes
-        if not username or not qr_code or not tech_name or not date or not comment:
+        if not username or not qr_code or not date or not comment:
             return jsonify({'status': 'error', 'message': "Missing data."}), 400
         
         # Insertion de la réponse dans la base de données
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO ask_repair (username, technician_name, date, comments, qr_code) VALUES (%s,%s, %s, %s,%s)", (username, tech_name, date, comment, qr_code))
+        cursor.execute("INSERT INTO ask_repair (username, date, comments, qr_code) VALUES (%s, %s, %s, %s)", (username, date, comment, qr_code))
         conn.commit()  # Confirmer l'insertion
 
         cursor.close()
