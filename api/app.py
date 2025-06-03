@@ -1,8 +1,9 @@
+import os
 from kivy.uix.filechooser import error
 import jwt
-import datetime
 from flask import Flask, request, jsonify
 import mysql.connector
+from datetime import datetime, timedelta
 import random
 import smtplib
 import bcrypt
@@ -23,6 +24,39 @@ db_config = {
     'host': '127.168.100.229',   # Hôte MySQL
     'database': 'projet_sezaia'  # Nom de la base de données
 }
+
+
+def parse_french_date(date_str):
+    try:
+        print(f"Original input date_str: {date_str}")
+
+        # Extraire la date et l'heure (on enlève le jour de la semaine)
+        parts = date_str.split(", ")
+        if len(parts) < 2:
+            raise ValueError("Format de date invalide.")
+
+        date_part = parts[1]  # e.g. "02 June 16:43 08:00"
+        # Prendre les 3 derniers éléments : jour, mois, heure (on suppose dernier est le bon)
+        date_tokens = date_part.strip().split()
+
+        # Gérer le cas où deux heures sont présentes (ex: "02 June 16:43 08:00")
+        if len(date_tokens) >= 3:
+            day = date_tokens[0]
+            month = date_tokens[1]
+            hour = date_tokens[-1]  # prendre la dernière heure
+        else:
+            raise ValueError("Format de date invalide")
+
+        current_year = datetime.now().year
+        full_date_str = f"{day} {month} {hour} {current_year}"
+
+        # Parser
+        dt = datetime.strptime(full_date_str, "%d %B %H:%M %Y")
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+    except Exception as e:
+        print("Error parsing date:", e)
+        return None
 
 # Fonction pour hasher un mot de passe
 def hash_password(password: str) -> str:
@@ -188,7 +222,7 @@ def register():
             "country_code": data['country_code'],
             "role": role,
             "otp_code": otp,
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
+            "exp": datetime.utcnow() + timedelta(minutes=5)
         }
 
 
@@ -358,34 +392,59 @@ def save_response():
 
     
 
+
 @app.route('/send_ask', methods=['POST'])
 def send_ask():
     try:
-        data = request.get_json()  # Récupérer les données envoyées par le client
+        data = request.get_json()
+        print("Received data in send_ask:", data)
+
         username = data.get('username')
-        date = data.get("date")
+        date_str = data.get('date')  # format attendu: "Tuesday, 03 June 16:50"
         comment = data.get('comment')
         qr_code = data.get('qr_code')
-        # Vérification si les données sont présentes
-        if not username or not qr_code or not date or not comment:
-            return jsonify({'status': 'error', 'message': "Missing data."}), 400
-        
-        # Insertion de la réponse dans la base de données
+
+        if not username or not date_str or not comment or not qr_code:
+            return jsonify({'status': 'error', 'message': 'Missing data'}), 400
+
+        try:
+            # Extrait la partie utile
+            parts = date_str.split(', ')
+            if len(parts) != 2:
+                raise ValueError("Expected format: 'DayName, dd MMMM HH:mm'")
+
+            date_time_str = parts[1]  # '03 June 16:50'
+            current_year = datetime.now().year
+            full_datetime_str = f"{date_time_str} {current_year}"  # '03 June 16:50 2025'
+
+            appointment_datetime = datetime.strptime(full_datetime_str, "%d %B %H:%M %Y")
+
+        except Exception as parse_err:
+            print("Error parsing date:", parse_err)
+            return jsonify({'status': 'error', 'message': 'Invalid date format. Expected: dd MMMM HH:mm'}), 400
+
+        # Séparer date et heure
+        date_only = appointment_datetime.date()     # 2025-06-03
+        time_only = appointment_datetime.time()     # 16:50:00
+
+        print(f"Inserting into ask_repair: username={username}, date={date_only}, hour_slot={time_only}, comment={comment}, qr_code={qr_code}")
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO ask_repair (username, date, comments, qr_code) VALUES (%s, %s, %s, %s)", (username, date, comment, qr_code))
-        conn.commit()  # Confirmer l'insertion
-
+        cursor.execute(
+            "INSERT INTO ask_repair (username, date, hour_slot, comment, qr_code) VALUES (%s, %s, %s, %s, %s)",
+            (username, date_only, time_only, comment, qr_code)
+        )
+        conn.commit()
         cursor.close()
         conn.close()
 
-        return jsonify({'status': 'success', 'message': "Response saved."}), 200
+        return jsonify({'status': 'success', 'message': 'Ask repair saved'}), 200
 
-    except mysql.connector.Error as err:
-        return jsonify({'status': 'error', 'message': f'Database error:{err}'}), 500
     except Exception as e:
+        print("Error in send_ask:", e)
         return jsonify({'status': 'error', 'message': f'Erreur : {str(e)}'}), 500
-  
+    
 
 @app.route('/forgot_password', methods=['POST'])
 def forgot_password():
@@ -409,7 +468,7 @@ def forgot_password():
             payload = {
                 "email": email,
                 "otp_code": otp,
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
+                "exp": datetime.utcnow() + timedelta(minutes=5)
             }
 
             token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
@@ -582,7 +641,7 @@ def change_email():
                 "email": email,
                 "new_email": new_email,
                 "otp_code": otp,
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=5)  # Expiration après 5 minutes
+                "exp": datetime.utcnow() + timedelta(minutes=5)  # Expiration après 5 minutes
             }
             # Création du JWT
             token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
@@ -786,7 +845,7 @@ def verify_delete_account():
             payload = {
                 "email": email,
                 "otp_code": otp,
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=5)  # Expiration après 5 minutes
+                "exp": datetime.utcnow() + timedelta(minutes=5)  # Expiration après 5 minutes
             }
             # Création du JWT
             token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
@@ -1109,6 +1168,52 @@ def get_email():
         if conn:
             cursor.close()
             conn.close()
+
+
+import logging
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+@app.route('/send_email', methods=['POST'])
+def send_email():
+    try:
+        data = request.get_json(force=True)
+        logging.info(f"Received data from client: {data}")
+
+        to_email = data.get('to_email')
+        message_text = data.get('message')
+
+        if not to_email or not message_text:
+            return jsonify({"error": "Missing 'to_email' or 'message' parameter"}), 400
+
+        sender_email = "hseinghannoum@gmail.com"
+        sender_password = "ehybppmrmbueakgo"  # Attention : stocker en variables d’environnement en prod
+
+        # Compose email message
+        email_subject = "Votre demande de maintenance"
+        email_body = f"Subject: {email_subject}\n\nVotre code OTP est : {message_text}"
+
+        # Connexion SMTP et envoi de l'email
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, to_email, email_body)
+
+        logging.info(f"Email sent successfully to {to_email}")
+        return jsonify({"status": "success", "message": f"Email envoyé à {to_email}"}), 200
+
+    except smtplib.SMTPException as smtp_err:
+        logging.error(f"SMTP error: {smtp_err}")
+        return jsonify({"error": "Erreur lors de l’envoi de l’email"}), 500
+    except Exception as e:
+        logging.error(f"Unexpected error: {e}")
+        return jsonify({"error": "Erreur interne du serveur"}), 500
+
+
+
+
+
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000,debug=True)
