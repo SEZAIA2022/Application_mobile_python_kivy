@@ -590,7 +590,7 @@ def change_username():
             conn.commit()
             return jsonify({'status': 'success', 'message': 'Username changed!'}), 200
         else:
-            return jsonify({'status': 'error', 'message': "User not found or incorrect password."}), 401
+            return jsonify({'status': 'error', 'message': "User not found or incorrect password."}), 300
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Processing error.: {str(e)}'}), 500
 
