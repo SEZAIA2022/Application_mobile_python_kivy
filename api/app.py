@@ -581,7 +581,6 @@ def change_username():
     try:
         hashed_password = user[2].encode('utf-8') if isinstance(user[2], str) else user[2]
         if verify_password(password, hashed_password):
-            print("Le mot de passe est correct!")
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("""
@@ -757,11 +756,11 @@ def change_password():
     # Email format validation
     email = data.get("email", "").strip()
     email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
-    if email and not re.match(email_regex, email):
-        return jsonify({
-            'status': 'error',
-            'message': 'Invalid email format.'
-        }), 400 
+    # if email and not re.match(email_regex, email):
+    #     return jsonify({
+    #         'status': 'error',
+    #         'message': 'Invalid email format.'
+    #     }), 400 
     if confirm_new_password != new_password:
        return jsonify({
             'status': 'error',
@@ -774,7 +773,7 @@ def change_password():
         }), 400
 
     # Hachage du mot de passe avant de le stocker
-    hashed_password = hash_password(new_password)
+    hashed_new_password = hash_password(new_password)
     # Mise à jour de la base de données MySQL
     try:
         conn = mysql.connector.connect(**db_config)
@@ -789,7 +788,7 @@ def change_password():
                 # Mise à jour du mot de passe dans la base de données
                 cursor.execute("""
                     UPDATE users SET password_hash = %s WHERE email = %s OR username = %s
-                """, (hashed_password, email, email))
+                """, (hashed_new_password, email, email))
                 conn.commit()
                 return jsonify({'message': 'Password updated successfully!'}), 200
             else:
