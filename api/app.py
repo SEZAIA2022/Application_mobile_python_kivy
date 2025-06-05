@@ -289,6 +289,7 @@ from datetime import datetime, timedelta
 # Assurez-vous que SECRET_KEY est défini
 SECRET_KEY = 'votre_clé_secrète'
 
+
 @app.route('/resend_otp', methods=['POST'])
 def resend_otp():
     data = request.get_json()
@@ -301,20 +302,23 @@ def resend_otp():
         return jsonify({'status': 'error', "message": "Email missing."}), 400
 
     try:
-        # Decode the JWT token
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
 
-        # Generate a new OTP
+        # Générer un nouvel OTP
         new_otp = str(random.randint(1000, 9999))
 
-        # Update the payload with the new OTP and expiry
+        # Mettre à jour le payload avec le nouvel OTP et nouvelle expiration
         payload['otp_code'] = new_otp
-        payload['exp'] = int((datetime.utcnow() + timedelta(minutes=5)).timestamp())
+        new_exp = datetime.utcnow() + timedelta(minutes=5)
+        payload['exp'] = int(new_exp.timestamp())
 
-        # Generate new token
+        # Générer un nouveau token JWT avec nouvelle expiration
         new_token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
-        # Send the new OTP by email (assurez-vous que send_otp_email est défini)
+        # Debug - afficher la date d'expiration
+        print("Nouveau token expirera à:", new_exp.isoformat())
+
+        # Envoyer l'OTP par email
         send_otp_email(new_email, new_otp)
 
         return jsonify({'status': 'success', "message": "New OTP sent.", "token": new_token}), 200
@@ -325,7 +329,6 @@ def resend_otp():
         return jsonify({'status': 'error', "message": "Invalid token."}), 401
     except Exception as e:
         return jsonify({'status': 'error', "message": f"Error while regenerating the OTP: {str(e)}"}), 500
-
 
 
 data_store = {"qr_data": ""}
@@ -493,27 +496,33 @@ def forgot_password():
         cursor.close()
         conn.close()
 
-
 @app.route('/verify_forget', methods=['POST'])
 def verify_forget():
-    data = request.json
-    otp = data['otp']
-    token = data['token']
-    
+    data = request.get_json()
+    otp = data.get('otp')
+    token = data.get('token')
+
+    if not otp or not token:
+        return jsonify({'status': 'error', "message": "OTP and token are required."}), 400
+
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms="HS256")
-        
-        if payload['otp_code'] == otp:
+        # Decoder le token avec liste algorithms
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+
+        # Optionnel: debug print expiry date
+        print("Token expiry:", datetime.utcfromtimestamp(payload['exp']))
+
+        if payload.get('otp_code') == otp:
             return jsonify({"message": "User successfully verified.", "token": token}), 200
         else:
             return jsonify({'status': 'error', "message": "Incorrect OTP"}), 400
+
     except jwt.ExpiredSignatureError:
         return jsonify({'status': 'error', "message": "The token has expired."}), 401
     except jwt.InvalidTokenError:
         return jsonify({'status': 'error', "message": "Invalid token."}), 401
     except Exception as e:
         return jsonify({'status': 'error', "message": str(e)}), 500
-
 
 @app.route('/change-password', methods=['POST'])
 def change_password_forget():
