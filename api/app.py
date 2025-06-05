@@ -281,35 +281,40 @@ def verify_register():
         return jsonify({'status': 'error', "message": str(e)}), 500
 
 
+from flask import Flask, request, jsonify
+import jwt
+import random
+from datetime import datetime, timedelta
+
+# Assurez-vous que SECRET_KEY est défini
+SECRET_KEY = 'votre_clé_secrète'
+
 @app.route('/resend_otp', methods=['POST'])
 def resend_otp():
-    data = request.json
+    data = request.get_json()
     token = data.get('token')
     new_email = data.get('email')
 
     if not token:
         return jsonify({'status': 'error', "message": "Token missing."}), 400
+    if not new_email:
+        return jsonify({'status': 'error', "message": "Email missing."}), 400
 
     try:
         # Decode the JWT token
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
 
-        # Check if the token has expired
-        exp_datetime = datetime.datetime.utcfromtimestamp(payload['exp']) if isinstance(payload['exp'], int) else payload['exp']
-        if datetime.datetime.utcnow() > exp_datetime:
-            return jsonify({'status': 'error', "message": "The token has expired."}), 401
-
         # Generate a new OTP
         new_otp = str(random.randint(1000, 9999))
 
-        # Update the payload with the new OTP
+        # Update the payload with the new OTP and expiry
         payload['otp_code'] = new_otp
-        payload['exp'] = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
+        payload['exp'] = int((datetime.utcnow() + timedelta(minutes=5)).timestamp())
 
         # Generate new token
         new_token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
-        # Send the new OTP by email
+        # Send the new OTP by email (assurez-vous que send_otp_email est défini)
         send_otp_email(new_email, new_otp)
 
         return jsonify({'status': 'success', "message": "New OTP sent.", "token": new_token}), 200
@@ -320,6 +325,7 @@ def resend_otp():
         return jsonify({'status': 'error', "message": "Invalid token."}), 401
     except Exception as e:
         return jsonify({'status': 'error', "message": f"Error while regenerating the OTP: {str(e)}"}), 500
+
 
 
 data_store = {"qr_data": ""}
@@ -807,8 +813,8 @@ def change_password():
             conn.close()
 
 
-@app.route('/verify_delete_account', methods=['POST'])
-def verify_delete_account():
+@app.route('/delete_account', methods=['POST'])
+def delete_account():
     data = request.get_json()
 
     if not data:
@@ -816,6 +822,7 @@ def verify_delete_account():
     
     email = data.get('email')
     password = data.get('password')
+    # confirm_pass = data.get('confirm_password')
 
     if not email or not password:
         return jsonify({'status': 'error', 'message': 'Email and password are required.'}), 400
@@ -852,7 +859,7 @@ def verify_delete_account():
             try:
                 # Envoi du code OTP à l'email de l'utilisateur
                 send_otp_email(email, otp)
-                return jsonify({"message": "OTP sent to your email.", "token": token}), 200
+                return jsonify({"message": "OTP sent to your email.", "token": token, "email":email}), 200
             except Exception as e:
                 return jsonify({'status': 'error', 'message': f"Error while sending the OTP: {str(e)}"}), 500
         else:
@@ -861,8 +868,8 @@ def verify_delete_account():
         return jsonify({'status': 'error', 'message': f'Processing error: {str(e)}'}), 500
 
 
-@app.route('/delete_account', methods=['POST'])
-def delete_account():
+@app.route('/verify_delete_account', methods=['POST'])
+def verify_delete_account():
     data = request.get_json()
 
     if not data:
