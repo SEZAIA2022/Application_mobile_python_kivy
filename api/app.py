@@ -479,9 +479,7 @@ def forgot_password():
                 "otp_code": otp,
                 "exp": datetime.utcnow() + timedelta(minutes=5)
             }
-
             token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-
             try:
                 send_otp_email(email, otp)
                 return jsonify({'status': 'success', "message": "OTP sent to your email.", "token": token, "email": email})
@@ -494,7 +492,7 @@ def forgot_password():
         return jsonify({'status': 'error', 'message': f'Database error:{str(err)}'}), 500
     finally:
         cursor.close()
-        conn.close()
+        conn.close() 
 
 @app.route('/verify_forget', methods=['POST'])
 def verify_forget():
