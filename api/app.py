@@ -281,54 +281,140 @@ def verify_register():
         return jsonify({'status': 'error', "message": str(e)}), 500
 
 
-from flask import Flask, request, jsonify
-import jwt
-import random
-from datetime import datetime, timedelta
-
-# Assurez-vous que SECRET_KEY est défini
-SECRET_KEY = 'votre_clé_secrète'
 
 
+
+
+
+
+
+# Mémoire temporaire pour les OTP
+otp_storage = {}
+
+
+
+# 🔍 Recherche l'utilisateur par email ou username
+def get_user_by_email_or_username(email_or_username):
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        query = "SELECT id, username, email FROM users WHERE email = %s OR username = %s"
+        cursor.execute(query, (email_or_username, email_or_username))
+        row = cursor.fetchone()
+
+        if row:
+            user = {
+                'id': row[0],
+                'username': row[1],
+                'email': row[2]
+            }
+            return user
+        else:
+            return None
+
+    except mysql.connector.Error as err:
+        print(f"Database error: {err}")
+        return None
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+# ✅ 1. Envoyer OTP
+@app.route('/forgot_password', methods=['POST'])
+def forgot_password():
+    data = request.get_json()
+    email_or_username = data.get('email')
+
+    if not email_or_username:
+        return jsonify({'status': 'error', 'message': "Email or username required."}), 400
+
+    user = get_user_by_email_or_username(email_or_username)
+    if not user:
+        return jsonify({'status': 'error', 'message': "User not found."}), 404
+
+    otp = str(random.randint(1000, 9999))
+    expires_at = datetime.utcnow() + timedelta(minutes=5)
+
+    otp_storage[email_or_username] = {'otp': otp, 'expires_at': expires_at}
+
+    try:
+        send_otp_email(user['email'], otp)
+        return jsonify({'status': 'success', 'message': "OTP sent to your email."})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ✅ 2. Vérifier OTP
+@app.route('/verify_forget', methods=['POST'])
+def verify_forget():
+    data = request.get_json()
+    otp = data.get('otp')
+    email_or_username = data.get('email')
+
+    if not otp or not email_or_username:
+        return jsonify({'status': 'error', 'message': "OTP and email/username are required."}), 400
+
+    record = otp_storage.get(email_or_username)
+    if not record:
+        return jsonify({'status': 'error', 'message': "No OTP found for this user."}), 404
+
+    if datetime.utcnow() > record['expires_at']:
+        del otp_storage[email_or_username]
+        return jsonify({'status': 'error', 'message': "OTP expired."}), 400
+
+    if record['otp'] != otp:
+        return jsonify({'status': 'error', 'message': "Incorrect OTP."}), 400
+
+    del otp_storage[email_or_username]
+    return jsonify({'status': 'success', 'message': "User successfully verified."}), 200
+
+# ✅ 3. Renvoyer OTP
 @app.route('/resend_otp', methods=['POST'])
 def resend_otp():
     data = request.get_json()
-    token = data.get('token')
-    new_email = data.get('email')
+    email_or_username = data.get('email')
 
-    if not token:
-        return jsonify({'status': 'error', "message": "Token missing."}), 400
-    if not new_email:
-        return jsonify({'status': 'error', "message": "Email missing."}), 400
+    if not email_or_username:
+        return jsonify({'status': 'error', 'message': "Email is required."}), 400
+
+    user = get_user_by_email_or_username(email_or_username)
+    if not user:
+        return jsonify({'status': 'error', 'message': "User not found."}), 404
+
+    new_otp = str(random.randint(1000, 9999))
+    expires_at = datetime.utcnow() + timedelta(minutes=5)
+
+    otp_storage[email_or_username] = {'otp': new_otp, 'expires_at': expires_at}
 
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-
-        # Générer un nouvel OTP
-        new_otp = str(random.randint(1000, 9999))
-
-        # Mettre à jour le payload avec le nouvel OTP et nouvelle expiration
-        payload['otp_code'] = new_otp
-        new_exp = datetime.utcnow() + timedelta(minutes=5)
-        payload['exp'] = int(new_exp.timestamp())
-
-        # Générer un nouveau token JWT avec nouvelle expiration
-        new_token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-
-        # Debug - afficher la date d'expiration
-        print("Nouveau token expirera à:", new_exp.isoformat())
-
-        # Envoyer l'OTP par email
-        send_otp_email(new_email, new_otp)
-
-        return jsonify({'status': 'success', "message": "New OTP sent.", "token": new_token}), 200
-
-    except jwt.ExpiredSignatureError:
-        return jsonify({'status': 'error', "message": "The token has expired."}), 401
-    except jwt.InvalidTokenError:
-        return jsonify({'status': 'error', "message": "Invalid token."}), 401
+        send_otp_email(user['email'], new_otp)
+        print(f"[INFO] New OTP sent to {user['email']}: {new_otp}")
+        return jsonify({'status': 'success', 'message': "New OTP sent to your email."}), 200
     except Exception as e:
-        return jsonify({'status': 'error', "message": f"Error while regenerating the OTP: {str(e)}"}), 500
+        print("Error sending OTP:", str(e))
+        return jsonify({'status': 'error', 'message': f"Server error: {str(e)}"}), 500
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 data_store = {"qr_data": ""}
@@ -455,72 +541,8 @@ def send_ask():
         return jsonify({'status': 'error', 'message': f'Erreur : {str(e)}'}), 500
     
 
-@app.route('/forgot_password', methods=['POST'])
-def forgot_password():
-    data = request.get_json()
-    email = data.get('email')
-    
-    if not email:
-        return jsonify({'status': 'error', 'message': "Email or username required."}), 400
 
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM users WHERE (email = %s OR username = %s) ", (email, email))
-        user = cursor.fetchone()
-
-        if user:
-            email = user[3]
-            otp = str(random.randint(1000, 9999))
-            
-            payload = {
-                "email": email,
-                "otp_code": otp,
-                "exp": datetime.utcnow() + timedelta(minutes=5)
-            }
-            token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-            try:
-                send_otp_email(email, otp)
-                return jsonify({'status': 'success', "message": "OTP sent to your email.", "token": token, "email": email})
-            except Exception as e:
-                return jsonify({'status': 'error', "message": str(e)}), 500
-        else:
-            return jsonify({'status': 'error', 'message': "User not found."}), 404
-
-    except mysql.connector.Error as err:
-        return jsonify({'status': 'error', 'message': f'Database error:{str(err)}'}), 500
-    finally:
-        cursor.close()
-        conn.close() 
-
-@app.route('/verify_forget', methods=['POST'])
-def verify_forget():
-    data = request.get_json()
-    otp = data.get('otp')
-    token = data.get('token')
-
-    if not otp or not token:
-        return jsonify({'status': 'error', "message": "OTP and token are required."}), 400
-
-    try:
-        # Decoder le token avec liste algorithms
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-
-        # Optionnel: debug print expiry date
-        print("Token expiry:", datetime.utcfromtimestamp(payload['exp']))
-
-        if payload.get('otp_code') == otp:
-            return jsonify({"message": "User successfully verified.", "token": token}), 200
-        else:
-            return jsonify({'status': 'error', "message": "Incorrect OTP"}), 400
-
-    except jwt.ExpiredSignatureError:
-        return jsonify({'status': 'error', "message": "The token has expired."}), 401
-    except jwt.InvalidTokenError:
-        return jsonify({'status': 'error', "message": "Invalid token."}), 401
-    except Exception as e:
-        return jsonify({'status': 'error', "message": str(e)}), 500
 
 @app.route('/change-password', methods=['POST'])
 def change_password_forget():
