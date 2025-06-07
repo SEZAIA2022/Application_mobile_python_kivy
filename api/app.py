@@ -292,6 +292,24 @@ def verify_register():
 otp_storage = {}
 
 
+def is_email_taken(new_email):
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = "SELECT 1 FROM users WHERE email = %s LIMIT 1"
+        cursor.execute(query, (new_email,))
+        result = cursor.fetchone()
+        return result is not None  # True si email existe
+    except mysql.connector.Error as err:
+        print(f"Database error: {err}")
+        return True  # En cas d'erreur, on considère l'email comme pris par sécurité
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 # 🔍 Recherche l'utilisateur par email ou username
 def get_user_by_email(email):
@@ -342,7 +360,7 @@ def forgot_password():
     otp = str(random.randint(1000, 9999))
     expires_at = datetime.utcnow() + timedelta(minutes=5)
 
-    otp_storage[email] = {'otp': otp, 'expires_at': expires_at}
+    otp_storage[email] = {'otp': otp, 'expires_at': expires_at,'attempts': 0}
 
     try:
         send_otp_email(user['email'], otp)
@@ -364,12 +382,20 @@ def verify_forget():
     if not record:
         return jsonify({'status': 'error', 'message': "No OTP found for this user."}), 404
 
+    # Limite des tentatives fixée à 5 par exemple
+    MAX_ATTEMPTS = 5
+    if record['attempts'] >= MAX_ATTEMPTS:
+        del otp_storage[email]  # suppression pour bloquer définitivement ou temporairement
+        return jsonify({'status': 'error', 'message': 'Too many attempts. OTP blocked.'}), 429
+
     if datetime.utcnow() > record['expires_at']:
         del otp_storage[email]
         return jsonify({'status': 'error', 'message': "OTP expired."}), 400
 
     if record['otp'] != otp:
+        record['attempts'] += 1  # <-- Incrémenter ici
         return jsonify({'status': 'error', 'message': "Incorrect OTP."}), 400
+
 
     del otp_storage[email]
     return jsonify({'status': 'success', 'message': "User successfully verified."}), 200
@@ -390,7 +416,8 @@ def resend_otp():
     new_otp = str(random.randint(1000, 9999))
     expires_at = datetime.utcnow() + timedelta(minutes=5)
 
-    otp_storage[email] = {'otp': new_otp, 'expires_at': expires_at}
+    old_record = otp_storage.get(email, {})
+    otp_storage[email] = {'otp': new_otp, 'expires_at': expires_at, 'attempts': 0, 'new_email': old_record.get('new_email')  }
 
     try:
         send_otp_email(user['email'], new_otp)
@@ -613,36 +640,39 @@ def change_username():
         return jsonify({'status': 'error', 'message': f'Processing error.: {str(e)}'}), 500
 
 
-
-
+# Mémoire temporaire pour OTP + new_email + expiration + tentatives
+otp_storage = {}
 
 @app.route('/change_email', methods=['POST'])
 def change_email():
     data = request.get_json()
-    print("Payload reçu:", data)  # 👈 Affiche la requête pour debug
+    print("Payload reçu:", data)  # Pour debug
 
     if not data:
         return jsonify({'status': 'error', 'message': 'No data received.'}), 400
     
     new_email = data.get('new_email')
-    current_email = data.get('email')
+    email = data.get('email')
     password = data.get('password')
 
-    if not current_email or not password or not new_email:
+    if not email or not password or not new_email:
         return jsonify({'status': 'error', 'message': 'All fields are required.'}), 400
 
     email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
-    if not re.match(email_regex, current_email) or not re.match(email_regex, new_email):
+    if not re.match(email_regex, email) or not re.match(email_regex, new_email):
         return jsonify({'status': 'error', 'message': 'The email format is invalid.'}), 400
 
-    if current_email == new_email:
+    if email == new_email:
         return jsonify({'status': 'error', 'message': "New email cannot be the same as current email."}), 400
+
+    if is_email_taken(new_email):
+        return jsonify({'status': 'error', 'message': 'This email is already in use.'}), 400
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT password_hash FROM users WHERE email = %s", (current_email,))
+        cursor.execute("SELECT password_hash FROM users WHERE email = %s", (email,))
         user = cursor.fetchone()
         if not user:
             return jsonify({'status': 'error', 'message': 'User not found.'}), 404
@@ -653,11 +683,16 @@ def change_email():
         if not verify_password(password, hashed_password):
             return jsonify({'status': 'error', 'message': 'Incorrect password.'}), 401
 
-        # Génération OTP (sans stocker le new_email)
         otp = str(random.randint(1000, 9999))
         expires_at = datetime.utcnow() + timedelta(minutes=5)
 
-        otp_storage[current_email] = {'otp': otp, 'expires_at': expires_at}
+        # Stockage sécurisé côté serveur du OTP + new_email + expiration + tentative
+        otp_storage[email] = {
+            'otp': otp,
+            'new_email': new_email,
+            'expires_at': expires_at,
+            'attempts': 0
+        }
 
         send_otp_email(new_email, otp)
 
@@ -667,39 +702,44 @@ def change_email():
         print(f"Erreur base de données : {err}")
         return jsonify({'status': 'error', 'message': f'Database error: {err}'}), 500
     finally:
-        if conn:
+        if cursor:
             cursor.close()
+        if conn:
             conn.close()
 
 
-
-
-
-
-    
 @app.route('/verify_change_email', methods=['POST'])
 def verify_change_email():
     data = request.get_json()
     otp = data.get('otp')
-    email = data.get('email')  # maintenant fourni par le client
-    new_email = data.get('new_email')  # maintenant fourni par le client
+    email = data.get('email')
 
-    if not email or not otp or not new_email:
+    if not email or not otp:
         return jsonify({'status': 'error', 'message': 'Missing fields.'}), 400
 
     record = otp_storage.get(email)
-
     if not record:
         return jsonify({'status': 'error', 'message': 'No OTP found for this user.'}), 404
+
+    MAX_ATTEMPTS = 5
+    if record['attempts'] >= MAX_ATTEMPTS:
+        del otp_storage[email]
+        return jsonify({'status': 'error', 'message': 'Too many attempts. OTP blocked.'}), 429
 
     if datetime.utcnow() > record['expires_at']:
         del otp_storage[email]
         return jsonify({'status': 'error', 'message': 'OTP expired.'}), 400
 
     if record['otp'] != otp:
+        record['attempts'] += 1
         return jsonify({'status': 'error', 'message': 'Incorrect OTP.'}), 400
 
+    conn = None
+    cursor = None
     try:
+        new_email = record['new_email']
+        print(f"Changing email from {email} to {new_email}")
+
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("UPDATE users SET email = %s WHERE email = %s", (new_email, email))
@@ -712,14 +752,10 @@ def verify_change_email():
     except mysql.connector.Error as err:
         return jsonify({'status': 'error', 'message': f'Database error: {err}'}), 500
     finally:
-        if conn:
+        if cursor:
             cursor.close()
+        if conn:
             conn.close()
-
-
-
-
-
 
 
 @app.route('/change_number', methods=['POST'])
