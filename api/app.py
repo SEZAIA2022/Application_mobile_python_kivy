@@ -172,6 +172,7 @@ def register():
     # Validation email
     email = data.get("email", "").strip()
     email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+    print(f"email register: {email}")  # DEBUG: Afficher l'email reçu
     if email and not re.match(email_regex, email):
         errors.append({'field': 'email', 'message': 'Invalid email format.'})
 
@@ -210,7 +211,7 @@ def register():
             password_hash = password_hash.decode('utf-8')
 
         # Stockage sécurisé côté serveur
-        register_otp_storage["hsein"] = {
+        register_otp_storage[email] = {
             'username': data['username'],
             'email': email,
             'password_hash': password_hash,
@@ -222,13 +223,15 @@ def register():
             'role': role,
             'otp': otp,
             'expires_at': expires_at,
-            'attempts': 0,
-            'otp': otp,
-            'expires_at': expires_at,
-            'attempts': 0,
+            'attempts': 0
         }
 
         # Synchronisation avec otp_storage pour que resend_otp fonctionne
+        otp_storage[email] = {
+            'otp': otp,
+            'expires_at': expires_at,
+            'attempts': 0
+        }
 
         send_otp_email(email, otp)
 
@@ -250,12 +253,12 @@ def verify_register():
     data = request.get_json()
     otp = data.get('otp')
     email = data.get('email')
-
+    print(f"email verify: {email}") # DEBUG: Afficher l'email reçu
     if not otp:
         return jsonify({'status': 'error', 'message': 'OTP and email are required.'}), 400
-    record = register_otp_storage.get("hsein")
 
-    print(f"[DEBUG] OTP record: {record}")
+    record = register_otp_storage.get(email)
+    print(f"email record: {email}, record_otp: {record['otp']}")  # DEBUG: Afficher l'email et le record
     if not record:
         return jsonify({'status': 'error', 'message': 'No OTP found for this email.'}), 404
     
@@ -293,14 +296,15 @@ def verify_register():
             record['country_code']
         ))
         conn.commit()
-        # del otp_storage[email]
+
+        del register_otp_storage[email]
 
         return jsonify({'status': 'success', 'message': 'User successfully verified and registered.'}), 200
 
     except mysql.connector.Error as err:
         return jsonify({'status': 'error', 'message': f"MySQL error: {err}"}), 500
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 501
+        return jsonify({'status': 'error', 'message': str(e)}), 500
     finally:
         if cursor:
             cursor.close()
@@ -386,7 +390,11 @@ def get_user_by_email(email):
 def forgot_password():
     data = request.get_json()
     email = data.get('email')
-
+    user = get_user_by_email(email)
+    if not user:
+        return jsonify({'status': 'error', 'message': "User not found."}), 404
+    email = user['email']
+    print(f"email: {email}")  # DEBUG: Afficher l'email reçu
     if not email:
         return jsonify({'status': 'error', 'message': "Email or username required."}), 400
 
@@ -411,11 +419,15 @@ def verify_forget():
     data = request.get_json()
     otp = data.get('otp')
     email = data.get('email')
-
+    user = get_user_by_email(email)
+    if not user:
+        return jsonify({'status': 'error', 'message': "User not found."}), 404
+    email = user['email']
+    print(f"email: {email}")  # DEBUG: Afficher l'email reçu
     if not otp or not email:
         return jsonify({'status': 'error', 'message': "OTP and email/username are required."}), 400
 
-    record = otp_storage.get(email)
+    record = otp_storage.get(user["email"])
     if not record:
         return jsonify({'status': 'error', 'message': "No OTP found for this user."}), 404
 
@@ -442,27 +454,47 @@ def verify_forget():
 def resend_otp():
     data = request.get_json()
     email = data.get('email')
+    previous_page = data.get('previous_page')
 
     if not email:
         return jsonify({'status': 'error', 'message': "Email is required."}), 400
 
     user = get_user_by_email(email)
-    if not user:
-        return jsonify({'status': 'error', 'message': "User not found."}), 404
 
     new_otp = str(random.randint(1000, 9999))
     expires_at = datetime.utcnow() + timedelta(minutes=5)
 
-    old_record = otp_storage.get(email, {})
-    otp_storage[email] = {'otp': new_otp, 'expires_at': expires_at, 'attempts': 0, 'new_email': old_record.get('new_email')  }
+    if user:
+        if previous_page == "SignUpActivity":
+            # Mise à jour register_otp_storage
+            record = register_otp_storage.get(email)
+            if not record:
+                return jsonify({'status': 'error', 'message': "User not found in registration storage."}), 404
+            record['otp'] = new_otp
+            record['expires_at'] = expires_at
+            record['attempts'] = 0
+            print(f"[DEBUG] OTP updated in register_otp_storage for {email}: {register_otp_storage[email]}")
+        else:
+            # Mise à jour otp_storage
+            old_record = otp_storage.get(email, {})
+            otp_storage[user["email"]] = {
+                'otp': new_otp,
+                'expires_at': expires_at,
+                'attempts': 0,
+                'new_email': old_record.get('new_email')
+            }
+            print(f"[DEBUG] OTP updated in otp_storage for {user['email']}: {otp_storage[user['email']]}")
 
     try:
         send_otp_email(user['email'], new_otp)
-        print(f"[INFO] New OTP sent to {user['email']}: {new_otp}")
+        print(f"[INFO] New OTP sent to {email}: {new_otp}")
         return jsonify({'status': 'success', 'message': "New OTP sent to your email."}), 200
     except Exception as e:
         print("Error sending OTP:", str(e))
         return jsonify({'status': 'error', 'message': f"Server error: {str(e)}"}), 500
+
+
+
 
 
 data_store = {"qr_data": ""}
