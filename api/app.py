@@ -210,7 +210,7 @@ def register():
             password_hash = password_hash.decode('utf-8')
 
         # Stockage sécurisé côté serveur
-        register_otp_storage[email] = {
+        register_otp_storage["hsein"] = {
             'username': data['username'],
             'email': email,
             'password_hash': password_hash,
@@ -222,15 +222,13 @@ def register():
             'role': role,
             'otp': otp,
             'expires_at': expires_at,
-            'attempts': 0
+            'attempts': 0,
+            'otp': otp,
+            'expires_at': expires_at,
+            'attempts': 0,
         }
 
         # Synchronisation avec otp_storage pour que resend_otp fonctionne
-        otp_storage[email] = {
-            'otp': otp,
-            'expires_at': expires_at,
-            'attempts': 0
-        }
 
         send_otp_email(email, otp)
 
@@ -255,9 +253,9 @@ def verify_register():
 
     if not otp:
         return jsonify({'status': 'error', 'message': 'OTP and email are required.'}), 400
+    record = register_otp_storage.get("hsein")
 
-    record = register_otp_storage.get(email)
-    email = record['email']
+    print(f"[DEBUG] OTP record: {record}")
     if not record:
         return jsonify({'status': 'error', 'message': 'No OTP found for this email.'}), 404
     
@@ -295,15 +293,14 @@ def verify_register():
             record['country_code']
         ))
         conn.commit()
-
-        del register_otp_storage[email]
+        # del otp_storage[email]
 
         return jsonify({'status': 'success', 'message': 'User successfully verified and registered.'}), 200
 
     except mysql.connector.Error as err:
         return jsonify({'status': 'error', 'message': f"MySQL error: {err}"}), 500
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        return jsonify({'status': 'error', 'message': str(e)}), 501
     finally:
         if cursor:
             cursor.close()
