@@ -153,27 +153,29 @@ def login():
         return jsonify({'status': 'error', 'message': f'Processing error: {str(e)}'}), 500
 
 
+register_otp_storage = {}
+
 @app.route('/register', methods=['POST'])
 def register():
-    data = request.json
+    data = request.get_json()
     if not data:
         return jsonify({'status': 'error', 'message': 'No data received.'}), 400
 
     required_fields = ["username", "email", "password", "confirm_password", "number", "address", "country_code", "city", "postal_code"]
     errors = []
 
-    # Checking for required fields
+    # Validation des champs obligatoires
     for field in required_fields:
         if not data.get(field):
             errors.append({'field': field, 'message': f"The field '{field.replace('_', ' ').capitalize()}' is required."})
 
-    # Email format validation
+    # Validation email
     email = data.get("email", "").strip()
     email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
     if email and not re.match(email_regex, email):
         errors.append({'field': 'email', 'message': 'Invalid email format.'})
 
-    # Password validation
+    # Validation mot de passe
     password = data.get("password", "").strip()
     confirm_password = data.get("confirm_password", "").strip()
     if not is_valid_password(password):
@@ -181,106 +183,132 @@ def register():
     elif password != confirm_password:
         errors.append({'field': 'confirm_password', 'message': "Passwords do not match."})
 
-    # if errors:
-    #     return jsonify({'status': 'error', 'message': 'Validation errors.', 'errors': errors}), 400
+    if errors:
+        return jsonify({'status': 'error', 'message': 'Validation errors.', 'errors': errors}), 400
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Check if the username or email exists in the 'users' table
+        # Vérification si username ou email existe déjà dans users
         cursor.execute("SELECT * FROM users WHERE username = %s OR email = %s", (data["username"], data["email"]))
-        existing_user = cursor.fetchone()
+        if cursor.fetchone():
+            return jsonify({'status': 'error', 'message': "Username or email already exists."}), 400
 
-        if existing_user:
-            # return jsonify({'status': 'error', 'message': "Username or email already exists."}), 400
-            errors.append({'field': ['username', 'email'], 'message': "Username or email already exists."})
-        
-        # Check if the user is in 'registred_users'
+        # Vérification si l'utilisateur est dans registred_users
         cursor.execute("SELECT * FROM registred_users WHERE username = %s OR email = %s", (data["username"], data["email"]))
         user_registred = cursor.fetchone()
+        if not user_registred:
+            return jsonify({'status': 'error', 'message': "Username or email can't be used."}), 400
         role = user_registred[3]
 
-        if not user_registred:
-            # return jsonify({'status': 'error', 'message': "Username or email can't be used."}), 400
-            errors.append({'field': ['username', 'email'], 'message': "Username or email can't be used."})
-        
-        if errors:
-            return jsonify({'status': 'error', 'message': 'Validation errors.', 'errors': errors}), 400
-        # Generate OTP
+        # Génération OTP + hash password + expiration + tentatives
         otp = str(random.randint(1000, 9999))
+        expires_at = datetime.utcnow() + timedelta(minutes=5)
+        password_hash = hash_password(password)
+        if isinstance(password_hash, bytes):
+            password_hash = password_hash.decode('utf-8')
 
-        # Create JWT payload
-        payload = {
-            "username": data['username'],
-            "email": data['email'],
-            "password": hash_password(password).decode("utf-8") if isinstance(hash_password(password), bytes) else hash_password(password),
-            "number": data['number'],
-            "address": data['address'],
-            "postal_code": data['postal_code'],
-            "city": data['city'],
-            "country_code": data['country_code'],
-            "role": role,
-            "otp_code": otp,
-            "exp": datetime.utcnow() + timedelta(minutes=5)
+        # Stockage sécurisé côté serveur
+        register_otp_storage[email] = {
+            'username': data['username'],
+            'email': email,
+            'password_hash': password_hash,
+            'number': data['number'],
+            'address': data['address'],
+            'postal_code': data['postal_code'],
+            'city': data['city'],
+            'country_code': data['country_code'],
+            'role': role,
+            'otp': otp,
+            'expires_at': expires_at,
+            'attempts': 0
         }
 
+        # Synchronisation avec otp_storage pour que resend_otp fonctionne
+        otp_storage[email] = {
+            'otp': otp,
+            'expires_at': expires_at,
+            'attempts': 0
+        }
 
-        # Generate JWT token
-        token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+        send_otp_email(email, otp)
 
-        # Send OTP by email
-        send_otp_email(data['email'], otp)
+        return jsonify({"message": "OTP sent to your email."}), 200
 
-        return jsonify({"message": "OTP sent to your email.", "token": token}), 200
-
+    except mysql.connector.Error as err:
+        return jsonify({'status': 'error', 'message': f"Database error: {err}"}), 500
     except Exception as e:
-        return jsonify({'status': 'error', "message": f"Server error: {str(e)}"}), 500
-
+        return jsonify({'status': 'error', 'message': f"Server error: {str(e)}"}), 500
     finally:
-        if conn:
+        if cursor:
             cursor.close()
+        if conn:
             conn.close()
 
 
 @app.route('/verify_register', methods=['POST'])
 def verify_register():
-    data = request.json
-    otp = data['otp']
-    token = data['token']
+    data = request.get_json()
+    otp = data.get('otp')
+    email = data.get('email')
+
+    if not otp:
+        return jsonify({'status': 'error', 'message': 'OTP and email are required.'}), 400
+
+    record = register_otp_storage.get(email)
+    email = record['email']
+    if not record:
+        return jsonify({'status': 'error', 'message': 'No OTP found for this email.'}), 404
     
+    MAX_ATTEMPTS = 5
+    if record['attempts'] >= MAX_ATTEMPTS:
+        del register_otp_storage[email]
+        return jsonify({'status': 'error', 'message': 'Too many attempts. OTP blocked.'}), 429
+
+    if datetime.utcnow() > record['expires_at']:
+        del register_otp_storage[email]
+        return jsonify({'status': 'error', 'message': 'OTP expired.'}), 400
+
+    if record['otp'] != otp:
+        record['attempts'] += 1
+        return jsonify({'status': 'error', 'message': 'Incorrect OTP.'}), 400
+
     try:
-        # Decode the JWT
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        
-        # OTP verification
-        if payload['otp_code'] == otp:
-            # Connect to the database and insert user information
-            conn = get_db_connection()
-            cursor = conn.cursor()
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-            # SQL query to insert user information
-            cursor.execute(""" 
-                INSERT INTO users (username, email, password_hash, phone_number, address, role, ville, code_postal, indicatif_telephonique)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (payload['username'], payload['email'], payload['password'], payload['number'], payload['address'], payload['role'], payload['city'], payload['postal_code'], payload['country_code']))
+        # Insert l'utilisateur dans la base
+        cursor.execute("""
+            INSERT INTO users 
+                (username, email, password_hash, phone_number, address, role, ville, code_postal, indicatif_telephonique)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            record['username'],
+            record['email'],
+            record['password_hash'],
+            record['number'],
+            record['address'],
+            record['role'],
+            record['city'],
+            record['postal_code'],
+            record['country_code']
+        ))
+        conn.commit()
 
-            # Commit changes to the database
-            conn.commit()
+        del register_otp_storage[email]
 
-            return jsonify({'status': 'success', "message": "User successfully verified."}), 200
-        else:
-            return jsonify({'status': 'error', "message": "Incorrect OTP"}), 400
-    except jwt.ExpiredSignatureError:
-        return jsonify({'status': 'error', "message": "The token has expired."}), 401
-    except jwt.InvalidTokenError:
-        return jsonify({'status': 'error', "message": "Invalid token."}), 401
+        return jsonify({'status': 'success', 'message': 'User successfully verified and registered.'}), 200
+
     except mysql.connector.Error as err:
-        return jsonify({'status': 'error', "message": f"MySQL error: {err}"}), 500
+        return jsonify({'status': 'error', 'message': f"MySQL error: {err}"}), 500
     except Exception as e:
-        return jsonify({'status': 'error', "message": str(e)}), 500
-
-
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 
@@ -313,6 +341,7 @@ def is_email_taken(new_email):
 
 # 🔍 Recherche l'utilisateur par email ou username
 def get_user_by_email(email):
+    # Chercher d'abord en base users
     conn = None
     cursor = None
     try:
@@ -330,8 +359,18 @@ def get_user_by_email(email):
                 'email': row[2]
             }
             return user
-        else:
-            return None
+
+        # Si pas trouvé en base, chercher dans register_otp_storage
+        record = register_otp_storage.get(email)
+        if record:
+            user = {
+                'id': None,  # Pas encore en base
+                'username': record['username'],
+                'email': record['email']
+            }
+            return user
+
+        return None
 
     except mysql.connector.Error as err:
         print(f"Database error: {err}")
@@ -342,6 +381,7 @@ def get_user_by_email(email):
             cursor.close()
         if conn:
             conn.close()
+
 
 
 # ✅ 1. Envoyer OTP
