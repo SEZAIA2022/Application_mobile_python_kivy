@@ -9,6 +9,9 @@ import smtplib
 import bcrypt
 import re  # Pour valider le format des emails
 from flask_cors import CORS  # Importation de CORS
+import logging
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 # Initialisation de l'application Flask
 app = Flask(__name__)
@@ -16,7 +19,10 @@ app = Flask(__name__)
 CORS(app)
 # Clé secrète pour l'encodage et le décodage du JWT
 SECRET_KEY = "SEZAIA2022"
-
+# Mémoire temporaire pour les OTP
+otp_storage = {}
+# Mémoire temporaire pour les Informations de register
+register_otp_storage = {}
 # Configuration de la connexion à la base de données MySQL
 db_config = {
     'user': 'root',        # Nom d'utilisateur MySQL
@@ -107,7 +113,6 @@ def get_db_connection():
     return mysql.connector.connect(**db_config)
 
 
-
 @app.route('/api/endpoint', methods=['GET'])
 def my_endpoint():
     return {"message": "Hello, world!"}
@@ -152,8 +157,6 @@ def login():
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Processing error: {str(e)}'}), 500
 
-
-register_otp_storage = {}
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -253,7 +256,6 @@ def verify_register():
     data = request.get_json()
     otp = data.get('otp')
     email = data.get('email')
-    print(f"email verify: {email}") # DEBUG: Afficher l'email reçu
     if not otp:
         return jsonify({'status': 'error', 'message': 'OTP and email are required.'}), 400
 
@@ -310,15 +312,6 @@ def verify_register():
             cursor.close()
         if conn:
             conn.close()
-
-
-
-
-
-
-
-# Mémoire temporaire pour les OTP
-otp_storage = {}
 
 
 def is_email_taken(new_email):
@@ -384,8 +377,6 @@ def get_user_by_email(email):
             conn.close()
 
 
-
-# ✅ 1. Envoyer OTP
 @app.route('/forgot_password', methods=['POST'])
 def forgot_password():
     data = request.get_json()
@@ -413,7 +404,7 @@ def forgot_password():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-# ✅ 2. Vérifier OTP
+
 @app.route('/verify_forget', methods=['POST'])
 def verify_forget():
     data = request.get_json()
@@ -449,7 +440,7 @@ def verify_forget():
     del otp_storage[email]
     return jsonify({'status': 'success', 'message': "User successfully verified."}), 200
 
-# ✅ 3. Renvoyer OTP
+
 @app.route('/resend_otp', methods=['POST'])
 def resend_otp():
     data = request.get_json()
@@ -492,19 +483,6 @@ def resend_otp():
     except Exception as e:
         print("Error sending OTP:", str(e))
         return jsonify({'status': 'error', 'message': f"Server error: {str(e)}"}), 500
-
-
-
-
-
-data_store = {"qr_data": ""}
-@app.route('/receive_qr', methods=['POST'])
-def receive_qr():
-    data = request.json
-    if "qr_data" in data:
-        data_store["qr_data"] = data["qr_data"]
-        return jsonify({"message": "Data received successfully"}), 200
-    return jsonify({'status':'error',"message": "Invalid data"}), 400
 
 
 @app.route('/questions', methods=['GET'])
@@ -566,8 +544,6 @@ def save_response():
         return jsonify({'status': 'error', 'message': f'Erreur : {str(e)}'}), 500
 
     
-
-
 @app.route('/send_ask', methods=['POST'])
 def send_ask():
     try:
@@ -620,9 +596,6 @@ def send_ask():
         print("Error in send_ask:", e)
         return jsonify({'status': 'error', 'message': f'Erreur : {str(e)}'}), 500
     
-
-
-
 
 @app.route('/change-password', methods=['POST'])
 def change_password_forget():
@@ -709,9 +682,6 @@ def change_username():
         return jsonify({'status': 'error', 'message': f'Processing error.: {str(e)}'}), 500
 
 
-# Mémoire temporaire pour OTP + new_email + expiration + tentatives
-otp_storage = {}
-
 @app.route('/change_email', methods=['POST'])
 def change_email():
     data = request.get_json()
@@ -782,6 +752,9 @@ def verify_change_email():
     data = request.get_json()
     otp = data.get('otp')
     email = data.get('email')
+    MAX_ATTEMPTS = 5
+    conn = None
+    cursor = None
 
     if not email or not otp:
         return jsonify({'status': 'error', 'message': 'Missing fields.'}), 400
@@ -790,7 +763,7 @@ def verify_change_email():
     if not record:
         return jsonify({'status': 'error', 'message': 'No OTP found for this user.'}), 404
 
-    MAX_ATTEMPTS = 5
+
     if record['attempts'] >= MAX_ATTEMPTS:
         del otp_storage[email]
         return jsonify({'status': 'error', 'message': 'Too many attempts. OTP blocked.'}), 429
@@ -803,8 +776,7 @@ def verify_change_email():
         record['attempts'] += 1
         return jsonify({'status': 'error', 'message': 'Incorrect OTP.'}), 400
 
-    conn = None
-    cursor = None
+
     try:
         new_email = record['new_email']
         print(f"Changing email from {email} to {new_email}")
@@ -872,7 +844,7 @@ def change_number():
             return jsonify({'status': 'error', 'message': "User not found or incorrect password."}), 401
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Processing error.: {str(e)}'}), 500
-    
+
 
 @app.route('/change_password', methods=['POST'])
 def change_password():
@@ -952,117 +924,140 @@ def delete_account():
 
     if not data:
         return jsonify({'status': 'error', 'message': 'No data received.'}), 400
-    
+
     email = data.get('email')
     password = data.get('password')
-    # confirm_pass = data.get('confirm_password')
 
     if not email or not password:
         return jsonify({'status': 'error', 'message': 'Email and password are required.'}), 400
 
+    # Vérification format email
+    email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+    if not re.match(email_regex, email):
+        return jsonify({'status': 'error', 'message': 'Invalid email format.'}), 400
+
     try:
-        # Connexion à la base de données MySQL
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
         user = cursor.fetchone()
+
+        if not user:
+            return jsonify({'status': 'error', 'message': "User not found."}), 404
+
+        hashed_password = user[2]  # Assurez-vous que c'est bien le champ du mot de passe
+        if isinstance(hashed_password, str):
+            hashed_password = hashed_password.encode('utf-8')
+
+        if not verify_password(password, hashed_password):
+            return jsonify({'status': 'error', 'message': "Incorrect password."}), 401
+
+        # Génération OTP
+        otp = str(random.randint(1000, 9999))
+        expires_at = datetime.utcnow() + timedelta(minutes=5)
+        otp_storage[email] = {
+            "email": email,
+            "otp": otp,
+            "expires_at": expires_at,
+            "attempts": 0
+        }
+
+        send_otp_email(email, otp)
+        return jsonify({"status": "success", "message": "OTP sent to your email.", "email": email}), 200
+
     except mysql.connector.Error as err:
         return jsonify({'status': 'error', 'message': f'Database error: {str(err)}'}), 500
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Error: {str(e)}'}), 500
     finally:
         if conn:
             cursor.close()
             conn.close()
 
-    if not user:
-        return jsonify({'status': 'error', 'message': "User not found or incorrect password."}), 404
-
-    try:
-        hashed_password = user[2].encode('utf-8') if isinstance(user[2], str) else user[2]
-        if verify_password(password, hashed_password):
-            # Génération d'un code OTP
-            otp = str(random.randint(1000, 9999))
-            payload = {
-                "email": email,
-                "otp_code": otp,
-                "exp": datetime.utcnow() + timedelta(minutes=5)  # Expiration après 5 minutes
-            }
-            # Création du JWT
-            token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-
-            try:
-                # Envoi du code OTP à l'email de l'utilisateur
-                send_otp_email(email, otp)
-                return jsonify({"message": "OTP sent to your email.", "token": token, "email":email}), 200
-            except Exception as e:
-                return jsonify({'status': 'error', 'message': f"Error while sending the OTP: {str(e)}"}), 500
-        else:
-            return jsonify({'status': 'error', 'message': "Incorrect password."}), 401
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Processing error: {str(e)}'}), 500
-
 
 @app.route('/verify_delete_account', methods=['POST'])
 def verify_delete_account():
     data = request.get_json()
-
-    if not data:
-        return jsonify({'status': 'error', 'message': 'No data received.'}), 400
-
     otp = data.get('otp')
-    token = data.get('token')
+    email = data.get('email')
+
+    if not data or not otp or not email:
+        return jsonify({'status': 'error', 'message': 'OTP and email are required.'}), 400
+
+    record = otp_storage.get(email)
+    MAX_ATTEMPTS = 5
+
+    if not record:
+        return jsonify({'status': 'error', 'message': 'No OTP found for this user.'}), 404
+
+    if record['attempts'] >= MAX_ATTEMPTS:
+        del otp_storage[email]
+        return jsonify({'status': 'error', 'message': 'Too many attempts. OTP blocked.'}), 429
+
+    if datetime.utcnow() > record['expires_at']:
+        del otp_storage[email]
+        return jsonify({'status': 'error', 'message': 'OTP expired.'}), 400
+
+    if record['otp'] != otp:
+        record['attempts'] += 1
+        return jsonify({'status': 'error', 'message': 'Incorrect OTP.'}), 400
 
     try:
-        # Décodage du JWT
-        payload = jwt.decode(token, SECRET_KEY, algorithms="HS256")
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-        # Vérification de l'OTP
-        if payload['otp_code'] == otp:
-            email = payload['email']
+        cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
+        user = cursor.fetchone()
 
-            # Connexion à la base de données MySQL
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
-            user = cursor.fetchone()
+        if not user:
+            return jsonify({'status': 'error', 'message': "User not found."}), 404
 
-            if not user:
-                return jsonify({'status': 'error', 'message': "User not found."}), 404
+        cursor.execute("DELETE FROM users WHERE email=%s", (email,))
+        conn.commit()
+        del otp_storage[email]
 
-            # Suppression du compte de l'utilisateur
-            cursor.execute("DELETE FROM users WHERE email=%s", (email,))
-            conn.commit()
+        return jsonify({'status': 'success', 'message': 'Account successfully deleted.'}), 200
 
-            return jsonify({'status': 'success', 'message': 'Account successfully deleted.'}), 200
-        else:
-            return jsonify({'status': 'error', 'message': "OTP incorrect."}), 400
-
-    except jwt.ExpiredSignatureError:
-        return jsonify({'status': 'error', 'message': "The token has expired."}), 401
-    except jwt.InvalidTokenError:
-        return jsonify({'status': 'error', 'message': "Invalid token."}), 401
+    except mysql.connector.Error as err:
+        return jsonify({'status': 'error', 'message': f'Database error: {str(err)}'}), 500
     except Exception as e:
-        return jsonify({'status': 'error', 'message': f"Error: {str(e)}"}), 500
+        return jsonify({'status': 'error', 'message': f'Error: {str(e)}'}), 500
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
 
 
 @app.route('/add_qr', methods=['POST'])
 def add_qr():
     data = request.json
-    username = data['username']
-    location = data['location']
-    qr_code = data['qr_code']
+    username = data.get('username')
+    location = data.get('location')
+    qr_code = data.get('qr_code')
+
     if not username or not location or not qr_code:
         return jsonify({'status': 'error', 'message': 'All fields are required'}), 400
+
     try:
         # Connexion à la base de données MySQL
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO qr_codes (user,locations,qr_code) VALUES (%s, %s,%s)",(username, location, qr_code))
+
+        # Insertion avec is_active = TRUE
+        cursor.execute("""
+            UPDATE qr_codes
+            SET user = %s, locations = %s, is_active = TRUE
+            WHERE qr_code = %s
+        """, (username, location, qr_code))
+
         conn.commit()
-        return jsonify({'status': 'success', "message": "Qr_code successfuly added."}), 200
+        return jsonify({'status': 'success', "message": "QR code successfully added and activated."}), 200
+
     except mysql.connector.Error as err:
-        return jsonify({'status': 'error', 'message': f'Database error:{str(err)}'}), 500
+        return jsonify({'status': 'error', 'message': f'Database error: {str(err)}'}), 500
+
     finally:
-        if conn:
+        if conn and conn.is_connected():
             cursor.close()
             conn.close()
 
@@ -1072,45 +1067,74 @@ def exist_qr():
     data = request.get_json()
     if not data:
         return jsonify({'status': 'error', 'message': "No data received."}), 400
-    
+
     qr_code = data.get('qr_code')
     if not qr_code:
-        return jsonify({'status': 'error', 'message': 'Qr code is required.'}), 400
+        return jsonify({'status': 'error', 'message': 'QR code is required.'}), 400
 
     try:
         # Connexion à la base de données MySQL
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM qr_codes where qr_code = %s", (qr_code,))
-        qr_codes = cursor.fetchall()
-        if qr_codes :
-            return jsonify ({'status': 'success', 'message': 'Qrcode exist'}), 200
+
+        # Vérifie si le QR code existe
+        cursor.execute("SELECT is_active FROM qr_codes WHERE qr_code = %s", (qr_code,))
+        result = cursor.fetchone()
+
+        if result:
+            is_active = result[0]
+            if is_active == True:
+                return jsonify({'status': 'success', 'message': 'QR code is active', 'is_active': True}), 200
+            else:
+                return jsonify({'status': 'success', 'message': 'QR code is not active', 'is_active': False}), 200
         else:
-            return jsonify({'status': 'error', 'message': 'Qrcode not exist'}), 400
+            # Insertion du QR code si inexistant
+            # cursor.execute("INSERT INTO qr_codes (qr_code) VALUES (%s)", (qr_code,))
+            # conn.commit()
+            # QR code non trouvé
+            return jsonify({'status': 'success', 'message': 'QR code does not exist'}), 404
+
     except mysql.connector.Error as err:
-        return jsonify({'status': 'error', 'message': f'Database error:{str(err)}'}), 500
+        return jsonify({'status': 'error', 'message': f'Database error: {str(err)}'}), 500
+
     finally:
-        if conn:
+        if conn.is_connected():
             cursor.close()
             conn.close()
 
 
-# @app.route('/get_qr', methods=['GET'])
-# def get_qr():
+
+
+from datetime import datetime
+@app.route('/ask_repair', methods=['GET'])
+def ask_repair():
     try:
-        # Connexion à la base de données MySQL
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM qr_codes")
-        qr_codes = cursor.fetchall()
-        if qr_codes :
-            return jsonify ({'status': 'success', 'message': 'Qrcode exist'}), 200
-        else:
-            return jsonify({'status': 'error', 'message': 'Qrcode not exist'}), 400
+
+        cursor.execute("SELECT id, username, date, comment, qr_code, hour_slot, status FROM ask_repair")
+        asks = cursor.fetchall()
+
+        asks_list = [{
+            'id': row[0],
+            'username': row[1],
+            'date': row[2].strftime("%A, %d %b %Y") if row[2] else None,
+            'comment': row[3],
+            'qr_code': row[4],
+            'hour_slot': (
+                f"{row[5].seconds // 3600:02}:{(row[5].seconds % 3600) // 60:02}:{row[5].seconds % 60:02}"
+                if row[5] else None
+            ),
+            'status': row[6]
+        } for row in asks]
+
+        return jsonify(asks_list), 200
+
     except mysql.connector.Error as err:
-        return jsonify({'status': 'error', 'message': f'Database error:{str(err)}'}), 500
+        return jsonify({'status': 'error', 'message': f'Database error: {str(err)}'}), 500
+
     finally:
-        if conn:
+        if conn.is_connected():
             cursor.close()
             conn.close()
 
@@ -1309,10 +1333,6 @@ def get_email():
             conn.close()
 
 
-import logging
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-
 @app.route('/send_email', methods=['POST'])
 def send_email():
     try:
@@ -1352,6 +1372,35 @@ def send_email():
 
 
 
+# data_store = {"qr_data": ""}
+# @app.route('/receive_qr', methods=['POST'])
+# def receive_qr():
+#     data = request.json
+#     if "qr_data" in data:
+#         data_store["qr_data"] = data["qr_data"]
+#         return jsonify({"message": "Data received successfully"}), 200
+#     return jsonify({'status':'error',"message": "Invalid data"}), 400
+
+
+
+#   @app.route('/get_qr', methods=['GET'])
+#   def get_qr():
+#     try:
+#         # Connexion à la base de données MySQL
+#         conn = get_db_connection()
+#         cursor = conn.cursor()
+#         cursor.execute("SELECT * FROM qr_codes")
+#         qr_codes = cursor.fetchall()
+#         if qr_codes :
+#             return jsonify ({'status': 'success', 'message': 'Qrcode exist'}), 200
+#         else:
+#             return jsonify({'status': 'error', 'message': 'Qrcode not exist'}), 400
+#     except mysql.connector.Error as err:
+#         return jsonify({'status': 'error', 'message': f'Database error:{str(err)}'}), 500
+#     finally:
+#         if conn:
+#             cursor.close()
+#             conn.close()
 
 
 if __name__ == '__main__':
